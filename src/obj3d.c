@@ -216,6 +216,7 @@ void parse_face_line(struct slice *face_data, char *line)
                 continue;
             }
             end = i;
+            memset(num_buff, 0, sizeof(num_buff));
             strncpy(num_buff, cursor + start, end - start);
             num = atoi(num_buff);
             append_slice(face_data, &num);
@@ -231,6 +232,7 @@ void parse_face_line(struct slice *face_data, char *line)
                 continue;
             }
             end = i;
+            memset(num_buff, 0, sizeof(num_buff));
             strncpy(num_buff, cursor + start, end - start);
             num = atoi(num_buff);
             append_slice(face_data, &num);
@@ -246,6 +248,7 @@ void parse_face_line(struct slice *face_data, char *line)
     else if (reading)
     {
         end = len;
+        memset(num_buff, 0, sizeof(num_buff));
         strncpy(num_buff, cursor + start, end - start);
         num = atoi(num_buff);
         append_slice(face_data, &num);

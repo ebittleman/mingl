@@ -2,8 +2,8 @@
 uniform mat4 MVP;
 uniform float time;
 
-layout(location = 0) in vec3 vCol;
-layout(location = 1) in vec3 vPos;
+layout(location = 0) in vec3 vPos;
+layout(location = 1) in vec3 vCol;
 layout(location = 2) in vec2 vUV;
 
 out vec4 interp;
@@ -21,8 +21,7 @@ void main() {
     // vec3 color = inverseMix(-0.3, 0.3, vPos.x);
     // vec3 color = mix(vec3(BLACK), vec3(WHITE), vPos.xxx);
 
-    // gl_Position = MVP * vec4(vPos, 1.0);
-    gl_Position = vec4(vPos, 1.0);
+    gl_Position = MVP * vec4(vPos, 1.0);
     interp = vec4(vCol, time);
     uv = vUV;
     // interp = vec4(vCol, time);
