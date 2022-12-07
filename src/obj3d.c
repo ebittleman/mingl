@@ -122,7 +122,12 @@ void append_vertex(struct slice *vertices, va_alist list)
     append_slice(vertices, &vec3);
 }
 
-int line_reader(const char *filename, line_callback_t *callback, line_callback_t *callback2)
+int line_reader(
+    const char *filename,
+    line_callback_t *callback,
+    line_callback_t *callback2,
+    line_callback_t *callback3,
+    line_callback_t *callback4)
 {
     FILE *f = NULL;
     int result = -1;
@@ -139,6 +144,8 @@ int line_reader(const char *filename, line_callback_t *callback, line_callback_t
 
         callback(line_buffer);
         callback2(line_buffer);
+        callback3(line_buffer);
+        callback4(line_buffer);
     }
 
     if (f)
@@ -156,6 +163,51 @@ fail:
         errno = saved_errno;
     }
     return result;
+}
+
+void parse_normal_line(struct slice *normal_data, char *line)
+{
+    float x, y, z;
+    sscanf(line, "%f %f %f", &x, &y, &z);
+    append_slice(normal_data, &x);
+    append_slice(normal_data, &y);
+    append_slice(normal_data, &z);
+}
+
+void handle_normal_line(struct slice *normal_data, va_alist list)
+{
+    struct Vector3 vec3;
+
+    char *line = va_arg_ptr(list, char *);
+
+    char *pre = "vn ";
+    if (!strncmp(pre, line, strlen(pre)) == 0)
+    {
+        return;
+    }
+    parse_normal_line(normal_data, line + 2);
+}
+
+void parse_uv_line(struct slice *normal_data, char *line)
+{
+    float u, v;
+    sscanf(line, "%f %f", &u, &v);
+    append_slice(normal_data, &u);
+    append_slice(normal_data, &v);
+}
+
+void handle_uv_line(struct slice *uv_data, va_alist list)
+{
+    struct Vector3 vec3;
+
+    char *line = va_arg_ptr(list, char *);
+
+    char *pre = "vt ";
+    if (!strncmp(pre, line, strlen(pre)) == 0)
+    {
+        return;
+    }
+    parse_uv_line(uv_data, line + 2);
 }
 
 void read_face_line(struct slice *face_data, va_alist list)
@@ -257,4 +309,54 @@ void parse_face_line(struct slice *face_data, char *line)
 
     int count = face_data->len - idx - 1;
     set_slice_item(face_data, idx, &count);
+}
+
+struct slice faces_to_elements(struct slice faces_slice)
+{
+    struct slice elements = new_slice(faces_slice.size);
+
+    int *faces = (int *)faces_slice.data;
+    int face_buffer[16];
+    for (int i = 0; i < faces_slice.len; i++)
+    {
+        int count = faces[i];
+        // printf("num items: %d\n", count);
+
+        int start = i + 1;
+        int end = start + count;
+        for (int x = start; x < end; x += 3)
+        {
+            int step = (end - (end - x) - start) / 3;
+            face_buffer[step] = faces[x] - 1;
+            // printf("line_idx: %d, vert_idx: %d\n", step, faces[x]);
+        }
+        for (int x = 0; x < (count / 3) - 2; x++)
+        {
+            if (x == 0)
+            {
+                append_slice(&elements, &face_buffer[0]);
+                append_slice(&elements, &face_buffer[1]);
+                append_slice(&elements, &face_buffer[2]);
+                // printf("%d, %d, %d\n",
+                //        face_buffer[0],
+                //        face_buffer[1],
+                //        face_buffer[2]);
+            }
+            else
+            {
+                int offset = x + 1;
+                append_slice(&elements, &face_buffer[offset]);
+                append_slice(&elements, &face_buffer[offset + 1]);
+                append_slice(&elements, &face_buffer[0]);
+                // printf("%d, %d, %d\n",
+                //        face_buffer[offset],
+                //        face_buffer[offset + 1],
+                //        face_buffer[0]);
+            }
+        }
+
+        i += count;
+    }
+
+    return elements;
 }

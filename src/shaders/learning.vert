@@ -1,5 +1,7 @@
 #version 330
-uniform mat4 MVP;
+uniform mat4 proj_matrix;
+uniform mat4 view_matrix;
+uniform mat4 model_matrix;
 uniform float time;
 
 layout(location = 0) in vec3 vPos;
@@ -21,7 +23,10 @@ void main() {
     // vec3 color = inverseMix(-0.3, 0.3, vPos.x);
     // vec3 color = mix(vec3(BLACK), vec3(WHITE), vPos.xxx);
 
-    gl_Position = MVP * vec4(vPos, 1.0);
+    // gl_Position = vec4(vPos, 1.0);
+    // gl_Position = proj_matrix * model_matrix * vec4(vPos, 1.0);
+    gl_Position = proj_matrix * view_matrix * model_matrix * vec4(vPos, 1.0);
+    // gl_Position = mp_matrix * view_matrix * vec4(vPos, 1.0);
     interp = vec4(vCol, time);
     uv = vUV;
     // interp = vec4(vCol, time);
