@@ -138,10 +138,9 @@ struct uniforms
 
 const char *default_vert_file = "src/shaders/default/default.vert";
 const char *default_frag_file = "src/shaders/default/default.frag";
-// const char *default_obj_file = "assets/star1.obj";
 // const char *default_obj_file = "assets/star.obj";
-const char *default_obj_file = "assets/arcade_obj.obj";
-// const char *default_obj_file = "assets/Triceratops_base_mesh.obj";
+// const char *default_obj_file = "assets/arcade_obj.obj";
+const char *default_obj_file = "assets/Triceratops_base_mesh.obj";
 
 struct uniforms configure_obj_example()
 {
@@ -237,12 +236,15 @@ struct uniforms configure_obj_example()
                           normals_slice.size * 3, (void *)0);
     glEnableVertexAttribArray(vnorm_location);
 
-    glGenBuffers(1, &uv_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, uv_buffer);
-    glBufferData(GL_ARRAY_BUFFER, uv_size, uv, GL_STATIC_DRAW);
-    glVertexAttribPointer(uv_location, 2, GL_FLOAT, GL_FALSE,
-                          uv_slice.size * 3, (void *)0);
-    glEnableVertexAttribArray(uv_location);
+    if (uv_slice.len)
+    {
+        glGenBuffers(1, &uv_buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, uv_buffer);
+        glBufferData(GL_ARRAY_BUFFER, uv_size, uv, GL_STATIC_DRAW);
+        glVertexAttribPointer(uv_location, 2, GL_FLOAT, GL_FALSE,
+                              uv_slice.size * 3, (void *)0);
+        glEnableVertexAttribArray(uv_location);
+    }
 
     glGenBuffers(1, &ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
@@ -519,9 +521,11 @@ int main(void)
     glClearColor(.25, .25, .25, 1.0);
     // glPolygonMode(GL_FRONT, GL_LINE);
     // glPolygonMode(GL_BACK, GL_LINE);
-    // glEnable(GL_CULL_FACE); // cull face
-    // glCullFace(GL_BACK);    // cull back face
-    // glFrontFace(GL_CW);     // GL_CCW for counter clock-wise
+    glEnable(GL_CULL_FACE); // cull face
+    glCullFace(GL_BACK);    // cull back face
+    glFrontFace(GL_CCW);    // GL_CCW for counter clock-wise
+    glEnable(GL_DEPTH_TEST);
+
     struct Cam cam = new_cam();
     mat4x4 proj;
     mat4x4 model;

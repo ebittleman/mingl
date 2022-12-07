@@ -12,6 +12,7 @@ layout(location = 2) in vec2 uv;
 
 out vec4 colorInterp;
 out vec2 uvInterp;
+out float timInterp;
 
 #define TAU 6.28318530718
 
@@ -21,7 +22,8 @@ void main() {
     vec3 pos = (position * scale) + translate_by;
 
     gl_Position = mvp_matrix * vec4(pos, 1.0);
-    colorInterp = vec4(normal, 0.0f);
+    colorInterp = vec4(normal, 1.0f);
     uvInterp = uv;
+    timInterp = time;
     // gl_Position = proj_matrix * view_matrix * model_matrix * vec4(pos, 1.0);
 }
