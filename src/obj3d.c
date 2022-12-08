@@ -75,53 +75,6 @@ void *get_slice_item(struct slice *s, int i)
     return NULL;
 }
 
-struct _file_data
-{
-    size_t len;
-    char *data;
-    bool ok;
-};
-
-int read_vec3(const char *p, struct Vector3 *out)
-{
-    int bytes_read = 0;
-    int i = 0;
-    float buffer[3] = {0, 0, 0};
-    struct Vector3 result = {0, 0, 0};
-
-    char *end;
-    for (double f = strtod(p, &end); p != end; f = strtod(p, &end))
-    {
-        bytes_read += (int)(end - p);
-        p = end;
-        if (i >= 3)
-        {
-            printf("too many values\n");
-            continue;
-        }
-        buffer[i] = f;
-        i++;
-    }
-
-    memcpy(out, buffer, sizeof(buffer[0]) * 3);
-    return bytes_read;
-}
-
-void append_vertex(struct slice *vertices, va_alist list)
-{
-    struct Vector3 vec3;
-
-    char *line = va_arg_ptr(list, char *);
-
-    char *pre = "v ";
-    if (!strncmp(pre, line, strlen(pre)) == 0)
-    {
-        return;
-    }
-    read_vec3(line + 1, &vec3);
-    append_slice(vertices, &vec3);
-}
-
 int line_reader(
     const char *filename,
     line_callback_t *callback,
@@ -165,13 +118,33 @@ fail:
     return result;
 }
 
-void parse_normal_line(struct slice *normal_data, char *line)
+void parse_vec3_line(struct slice *vec3_data, char *line)
 {
     float x, y, z;
     sscanf(line, "%f %f %f", &x, &y, &z);
-    append_slice(normal_data, &x);
-    append_slice(normal_data, &y);
-    append_slice(normal_data, &z);
+    append_slice(vec3_data, &x);
+    append_slice(vec3_data, &y);
+    append_slice(vec3_data, &z);
+}
+
+void parse_uv_line(struct slice *normal_data, char *line)
+{
+    float u, v;
+    sscanf(line, "%f %f", &u, &v);
+    append_slice(normal_data, &u);
+    append_slice(normal_data, &v);
+}
+
+void handle_vertex_line(struct slice *vertices, va_alist list)
+{
+    char *line = va_arg_ptr(list, char *);
+
+    char *pre = "v ";
+    if (!strncmp(pre, line, strlen(pre)) == 0)
+    {
+        return;
+    }
+    parse_vec3_line(vertices, line + 2);
 }
 
 void handle_normal_line(struct slice *normal_data, va_alist list)
@@ -185,15 +158,7 @@ void handle_normal_line(struct slice *normal_data, va_alist list)
     {
         return;
     }
-    parse_normal_line(normal_data, line + 2);
-}
-
-void parse_uv_line(struct slice *normal_data, char *line)
-{
-    float u, v;
-    sscanf(line, "%f %f", &u, &v);
-    append_slice(normal_data, &u);
-    append_slice(normal_data, &v);
+    parse_vec3_line(normal_data, line + 3);
 }
 
 void handle_uv_line(struct slice *uv_data, va_alist list)
@@ -210,7 +175,7 @@ void handle_uv_line(struct slice *uv_data, va_alist list)
     parse_uv_line(uv_data, line + 2);
 }
 
-void read_face_line(struct slice *face_data, va_alist list)
+void handle_face_line(struct slice *face_data, va_alist list)
 {
     struct Vector3 vec3;
 

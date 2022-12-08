@@ -120,37 +120,57 @@ void _update_fps_counter(GLFWwindow *window, float current_seconds)
     frame_count++;
 }
 
-struct uniforms
-{
-    GLuint vertex_array;
-    GLuint program;
-    const char *vert_file;
-    const char *frag_file;
-    int start;
-    int count;
-
-    GLint mvp_location;
-    GLint proj_location;
-    GLint view_location;
-    GLint model_location;
-    GLint time_location;
-};
-
 const char *default_vert_file = "src/shaders/default/default.vert";
 const char *default_frag_file = "src/shaders/default/default.frag";
 // const char *default_obj_file = "assets/star.obj";
-// const char *default_obj_file = "assets/arcade_obj.obj";
-const char *default_obj_file = "assets/Triceratops_base_mesh.obj";
+const char *default_obj_file = "assets/arcade_obj.obj";
+// const char *default_obj_file = "assets/Triceratops_base_mesh.obj";
 
-struct uniforms configure_obj_example()
+enum Buffers
 {
-    struct slice vertices = {0, 0, sizeof(struct Vector3), NULL};
+    VERTS = 0,
+    UVS,
+    NORMALS,
+    ELEMENTS,
+    COUNT_BUFFERS
+};
+
+enum Uniforms
+{
+    U_MVP = 1,
+    U_MODEL,
+    U_VIEW,
+    U_PROJECTION,
+    U_TIME,
+    COUNT_UNIFORMS
+};
+
+struct Program
+{
+    GLuint id;
+    const char *vert_file;
+    const char *frag_file;
+    GLint uniforms[COUNT_UNIFORMS];
+    GLint buffers[COUNT_BUFFERS - 1];
+};
+
+struct vertex_buffers
+{
+    struct slice vertices;
+    struct slice elements;
+    struct slice normals;
+    struct slice uvs;
+};
+
+void load_obj_file(const char *obj_file_name, struct slice buffers[COUNT_BUFFERS])
+{
+    struct slice vertices_slice = {0, 0, sizeof(float), NULL};
     line_callback_t *vertices_callback = (line_callback_t *)alloc_callback(
-        (callback_function_t)&append_vertex, &vertices);
+        (callback_function_t)&handle_vertex_line, &vertices_slice);
 
     struct slice faces = new_slice(sizeof(int));
     line_callback_t *faces_callback = (line_callback_t *)alloc_callback(
-        (callback_function_t)&read_face_line, &faces);
+        (callback_function_t)&handle_face_line, &faces);
 
     struct slice normals_slice = new_slice(sizeof(float));
     line_callback_t *normals_callback = (line_callback_t *)alloc_callback(
@@ -160,7 +180,7 @@ struct uniforms configure_obj_example()
     line_callback_t *uv_callback = (line_callback_t *)alloc_callback(
         (callback_function_t)&handle_uv_line, &uv_slice);
 
-    line_reader(default_obj_file,
+    line_reader(obj_file_name,
                 vertices_callback,
                 faces_callback,
                 normals_callback,
@@ -171,24 +191,16 @@ struct uniforms configure_obj_example()
     free_callback((callback_t)normals_callback);
     free_callback((callback_t)uv_callback);
 
-    struct Vector3 *verts = (struct Vector3 *)vertices.data;
-    size_t vert_size = vertices.len * vertices.size;
-
-    float *normals = (float *)normals_slice.data;
-    size_t normals_size = normals_slice.len * normals_slice.size;
-
-    float *uv = (float *)uv_slice.data;
-    size_t uv_size = uv_slice.len * uv_slice.size;
-
     struct slice elements_slice = faces_to_elements(faces);
-    int *elements = (int *)elements_slice.data;
-    size_t element_size = elements_slice.len * elements_slice.size;
+    if (faces.cap > 0)
+    {
+        free(faces.data);
+    }
 
     // printf("Found %d vertices\n", vertices.len);
-    // for (size_t i = 0; i < vertices.len; i++)
+    // for (size_t i = 0; i < vertices.len; i+=3)
     // {
-    //     struct Vector3 vec = verts[i];
-    //     printf("x: %f, y: %f, z: %f\n", vec.x, vec.y, vec.z);
+    //     printf("x: %f, y: %f, z: %f\n", verts[i], verts[i+1], verts[i+2]);
     // }
 
     // printf("Found %d elements\n", elements_slice.len);
@@ -200,116 +212,185 @@ struct uniforms configure_obj_example()
     //            elements[i + 2]);
     // }
 
-    if (faces.cap > 0)
-    {
-        free(faces.data);
-    }
-
-    GLuint vertex_array, vertex_buffer, normal_buffer, uv_buffer, ebo; //, color_buffer, uv_buffer;
-    GLint mvp_location, proj_location, view_location, model_location,
-        time_location, vpos_location, vnorm_location, uv_location; //, vcol_location, vuv_location;
-
-    GLuint program = create_shader_program_from_files(default_vert_file, default_frag_file);
-    mvp_location = glGetUniformLocation(program, "mvp_matrix");
-    proj_location = glGetUniformLocation(program, "proj_matrix");
-    view_location = glGetUniformLocation(program, "view_matrix");
-    model_location = glGetUniformLocation(program, "model_matrix");
-    time_location = glGetUniformLocation(program, "time");
-    vpos_location = glGetAttribLocation(program, "position");
-    vnorm_location = glGetAttribLocation(program, "normal");
-    uv_location = glGetAttribLocation(program, "uv");
-
-    glGenVertexArrays(1, &vertex_array);
-    glBindVertexArray(vertex_array);
-
-    glGenBuffers(1, &vertex_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-    glBufferData(GL_ARRAY_BUFFER, vert_size, verts, GL_STATIC_DRAW);
-    glVertexAttribPointer(vpos_location, 3, GL_FLOAT, GL_FALSE,
-                          vertices.size, (void *)0);
-    glEnableVertexAttribArray(vpos_location);
-
-    glGenBuffers(1, &normal_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, normal_buffer);
-    glBufferData(GL_ARRAY_BUFFER, normals_size, normals, GL_STATIC_DRAW);
-    glVertexAttribPointer(vnorm_location, 3, GL_FLOAT, GL_FALSE,
-                          normals_slice.size * 3, (void *)0);
-    glEnableVertexAttribArray(vnorm_location);
-
-    if (uv_slice.len)
-    {
-        glGenBuffers(1, &uv_buffer);
-        glBindBuffer(GL_ARRAY_BUFFER, uv_buffer);
-        glBufferData(GL_ARRAY_BUFFER, uv_size, uv, GL_STATIC_DRAW);
-        glVertexAttribPointer(uv_location, 2, GL_FLOAT, GL_FALSE,
-                              uv_slice.size * 3, (void *)0);
-        glEnableVertexAttribArray(uv_location);
-    }
-
-    glGenBuffers(1, &ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 element_size, elements_slice.data, GL_STATIC_DRAW);
-
-    return (struct uniforms){
-        vertex_array, program, default_vert_file, default_frag_file,
-        0, elements_slice.len,
-        mvp_location, proj_location, view_location, model_location, time_location};
+    buffers[VERTS] = vertices_slice;
+    buffers[UVS] = uv_slice;
+    buffers[NORMALS] = normals_slice;
+    buffers[ELEMENTS] = elements_slice;
+    return;
 }
 
-struct uniforms configure_learning_example()
+void load_program(struct Program *program, const char *vert_file, const char *frag_file)
 {
-    GLuint vertex_array, vertex_buffer, color_buffer, uv_buffer, ebo;
-    GLint mvp_location, proj_location, view_location, model_location, time_location, vpos_location, vcol_location, vuv_location;
+    GLuint id = create_shader_program_from_files(vert_file, frag_file);
+    program->id = id;
+    program->vert_file = vert_file;
+    program->frag_file = frag_file;
 
-    GLuint program = create_shader_program_from_files(vert_file, frag_file);
-    // pull variable location
-    mvp_location = glGetUniformLocation(program, "mvp_matrix");
-    proj_location = glGetUniformLocation(program, "proj_matrix");
-    view_location = glGetUniformLocation(program, "view_matrix");
-    model_location = glGetUniformLocation(program, "model_matrix");
-    time_location = glGetUniformLocation(program, "time");
-    vpos_location = glGetAttribLocation(program, "vPos");
-    vcol_location = glGetAttribLocation(program, "vCol");
-    vuv_location = glGetAttribLocation(program, "vUV");
+    program->uniforms[U_MVP] = glGetUniformLocation(id, "mvp_matrix");
+    program->uniforms[U_MODEL] = glGetUniformLocation(id, "model_matrix");
+    program->uniforms[U_VIEW] = glGetUniformLocation(id, "view_matrix");
+    program->uniforms[U_PROJECTION] = glGetUniformLocation(id, "proj_matrix");
+    program->uniforms[U_TIME] = glGetUniformLocation(id, "time");
 
-    glGenVertexArrays(1, &vertex_array);
+    // buffer attributes
+    program->buffers[VERTS] = glGetAttribLocation(id, "position");
+    program->buffers[UVS] = glGetAttribLocation(id, "uv");
+    program->buffers[NORMALS] = glGetAttribLocation(id, "normal");
+}
+
+size_t configure_obj_example(
+    GLuint *vertex_array,
+    GLuint vertex_buffers[COUNT_BUFFERS],
+    struct slice buffer_slices[COUNT_BUFFERS],
+    bool buffer_disabled[COUNT_BUFFERS],
+    struct Program program)
+{
+    load_obj_file(default_obj_file, buffer_slices);
+
+    glGenVertexArrays(1, vertex_array);
+    glBindVertexArray(*vertex_array);
+    glGenBuffers(COUNT_BUFFERS, vertex_buffers);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[VERTS]);
+    glBufferData(GL_ARRAY_BUFFER,
+                 buffer_slices[VERTS].len * buffer_slices[VERTS].size,
+                 buffer_slices[VERTS].data, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[UVS]);
+    glBufferData(GL_ARRAY_BUFFER,
+                 buffer_slices[UVS].len * buffer_slices[UVS].size,
+                 buffer_slices[UVS].data, GL_STATIC_DRAW);
+    if (!buffer_slices[UVS].len)
+    {
+        buffer_disabled[UVS] = true;
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[NORMALS]);
+    glBufferData(GL_ARRAY_BUFFER,
+                 buffer_slices[NORMALS].len * buffer_slices[NORMALS].size,
+                 buffer_slices[NORMALS].data, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertex_buffers[ELEMENTS]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 buffer_slices[ELEMENTS].len * buffer_slices[ELEMENTS].size,
+                 buffer_slices[ELEMENTS].data, GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+    return buffer_slices[ELEMENTS].len;
+}
+
+void setup_vertex_attributes(
+    struct Program program,
+    GLuint vertex_buffers[COUNT_BUFFERS],
+    bool buffer_disabled[COUNT_BUFFERS])
+{
+
+    // define an arrays of generic vertex attribute data
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[VERTS]);
+    glVertexAttribPointer(program.buffers[VERTS], 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+    glEnableVertexAttribArray(program.buffers[VERTS]);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[NORMALS]);
+    glVertexAttribPointer(program.buffers[NORMALS], 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+    glEnableVertexAttribArray(program.buffers[NORMALS]);
+
+    if (buffer_disabled[UVS])
+    {
+        glDisableVertexAttribArray(program.buffers[UVS]);
+        return;
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[UVS]);
+    glVertexAttribPointer(program.buffers[UVS], 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
+    glEnableVertexAttribArray(program.buffers[UVS]);
+}
+
+void render_object(
+    GLuint vertex_array,
+    size_t element_count,
+    GLuint vertex_buffers[COUNT_BUFFERS],
+    bool buffer_disabled[COUNT_BUFFERS],
+    struct Program program,
+    mat4x4 *proj,
+    mat4x4 *view,
+    mat4x4 *model,
+    float time)
+{
+
+    mat4x4 mvp;
+    mat4x4_mul(mvp, *proj, *view);
+    mat4x4_mul(mvp, mvp, *model);
+
+    glUseProgram(program.id);
     glBindVertexArray(vertex_array);
 
-    glGenBuffers(1, &vertex_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(vpos_location, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(vertices[0]), (void *)0);
+    glUniformMatrix4fv(program.uniforms[U_MVP], 1, GL_FALSE, (const GLfloat *)&mvp);
+    glUniformMatrix4fv(program.uniforms[U_MODEL], 1, GL_FALSE, (const GLfloat *)model);
+    glUniformMatrix4fv(program.uniforms[U_VIEW], 1, GL_FALSE, (const GLfloat *)view);
+    glUniformMatrix4fv(program.uniforms[U_PROJECTION], 1, GL_FALSE, (const GLfloat *)proj);
+    glUniform1f(program.uniforms[U_TIME], time);
+    setup_vertex_attributes(program, vertex_buffers, buffer_disabled);
 
-    glGenBuffers(1, &color_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, color_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
-    glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(colors[0]), (void *)0);
-
-    glGenBuffers(1, &uv_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, uv_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(uvs), uvs, GL_STATIC_DRAW);
-    glVertexAttribPointer(vuv_location, 2, GL_FLOAT, GL_FALSE,
-                          sizeof(uvs[0]), (void *)0);
-
-    glGenBuffers(1, &ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 sizeof(elements), elements, GL_STATIC_DRAW);
-
-    // enable attributes
-    glEnableVertexAttribArray(vpos_location);
-    glEnableVertexAttribArray(vcol_location);
-    glEnableVertexAttribArray(vuv_location);
-
-    int num_elements = sizeof(elements) / sizeof(elements[0]);
-    return (struct uniforms){
-        vertex_array, program, vert_file, frag_file, 0, num_elements,
-        mvp_location, proj_location, view_location, model_location, time_location};
+    glDrawElements(
+        GL_TRIANGLES, element_count,
+        GL_UNSIGNED_INT, (void *)0);
+    glBindVertexArray(0);
+    // glDrawArrays(GL_TRIANGLES, _uniforms->start, _uniforms->count);
+    // glDrawArrays(GL_POINTS, _uniforms->start, _uniforms->count);
 }
+
+// struct uniforms configure_learning_example()
+// {
+//     GLuint vertex_array, vertex_buffer, color_buffer, uv_buffer, ebo;
+//     GLint mvp_location, proj_location, view_location, model_location, time_location, vpos_location, vcol_location, vuv_location;
+
+//     GLuint program = create_shader_program_from_files(vert_file, frag_file);
+//     // pull variable location
+//     mvp_location = glGetUniformLocation(program, "mvp_matrix");
+//     proj_location = glGetUniformLocation(program, "proj_matrix");
+//     view_location = glGetUniformLocation(program, "view_matrix");
+//     model_location = glGetUniformLocation(program, "model_matrix");
+//     time_location = glGetUniformLocation(program, "time");
+//     vpos_location = glGetAttribLocation(program, "vPos");
+//     vcol_location = glGetAttribLocation(program, "vCol");
+//     vuv_location = glGetAttribLocation(program, "vUV");
+
+//     glGenVertexArrays(1, &vertex_array);
+//     glBindVertexArray(vertex_array);
+
+//     glGenBuffers(1, &vertex_buffer);
+//     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+//     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+//     glVertexAttribPointer(vpos_location, 3, GL_FLOAT, GL_FALSE,
+//                           sizeof(vertices[0]), (void *)0);
+
+//     glGenBuffers(1, &color_buffer);
+//     glBindBuffer(GL_ARRAY_BUFFER, color_buffer);
+//     glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
+//     glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE,
+//                           sizeof(colors[0]), (void *)0);
+
+//     glGenBuffers(1, &uv_buffer);
+//     glBindBuffer(GL_ARRAY_BUFFER, uv_buffer);
+//     glBufferData(GL_ARRAY_BUFFER, sizeof(uvs), uvs, GL_STATIC_DRAW);
+//     glVertexAttribPointer(vuv_location, 2, GL_FLOAT, GL_FALSE,
+//                           sizeof(uvs[0]), (void *)0);
+
+//     glGenBuffers(1, &ebo);
+//     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+//     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+//                  sizeof(elements), elements, GL_STATIC_DRAW);
+
+//     // enable attributes
+//     glEnableVertexAttribArray(vpos_location);
+//     glEnableVertexAttribArray(vcol_location);
+//     glEnableVertexAttribArray(vuv_location);
+
+//     int num_elements = sizeof(elements) / sizeof(elements[0]);
+//     return (struct uniforms){
+//         vertex_array, program, vert_file, frag_file, 0, num_elements,
+//         mvp_location, proj_location, view_location, model_location, time_location};
+// }
+
 struct Cam
 {
     float cam_speed;
@@ -348,35 +429,7 @@ void generate_projection(GLFWwindow *window, mat4x4 *p)
     mat4x4_perspective(*p, 90.0f, ratio, 0.1f, 100.0f);
 }
 
-void render_object(
-    mat4x4 *proj,
-    mat4x4 *view,
-    mat4x4 *model,
-    float time,
-    struct uniforms *_uniforms)
-{
-
-    mat4x4 mvp;
-    mat4x4_mul(mvp, *proj, *view);
-    mat4x4_mul(mvp, mvp, *model);
-
-    glUseProgram(_uniforms->program);
-    glUniformMatrix4fv(_uniforms->mvp_location, 1, GL_FALSE, (const GLfloat *)&mvp);
-    glUniformMatrix4fv(_uniforms->proj_location, 1, GL_FALSE, (const GLfloat *)proj);
-    glUniformMatrix4fv(_uniforms->view_location, 1, GL_FALSE, (const GLfloat *)view);
-    glUniformMatrix4fv(_uniforms->model_location, 1, GL_FALSE, (const GLfloat *)model);
-    glUniform1f(_uniforms->time_location, time);
-
-    glBindVertexArray(_uniforms->vertex_array);
-
-    glDrawElements(
-        GL_TRIANGLES, _uniforms->count,
-        GL_UNSIGNED_INT, (void *)(intptr_t)_uniforms->start);
-    // glDrawArrays(GL_TRIANGLES, _uniforms->start, _uniforms->count);
-    // glDrawArrays(GL_POINTS, _uniforms->start, _uniforms->count);
-}
-
-void handle_events(GLFWwindow *window, struct uniforms *_uniforms)
+void handle_events(GLFWwindow *window, struct Program *program)
 {
     static bool reload_key_pressed = false;
     bool down = glfwGetKey(window, GLFW_KEY_R);
@@ -388,9 +441,9 @@ void handle_events(GLFWwindow *window, struct uniforms *_uniforms)
     {
         reload_key_pressed = false;
         reload_shader_program_from_files(
-            &_uniforms->program,
-            _uniforms->vert_file,
-            _uniforms->frag_file);
+            &program->id,
+            program->vert_file,
+            program->frag_file);
         printf("reloaded shaders\n");
     }
 }
@@ -423,8 +476,7 @@ void update_cam(struct Cam *cam)
 }
 
 void handle_camera_events(
-    GLFWwindow *window, double elapsed_seconds, struct Cam *cam,
-    struct uniforms *_uniforms)
+    GLFWwindow *window, double elapsed_seconds, struct Cam *cam)
 {
     bool cam_moved = false;
     if (glfwGetKey(window, GLFW_KEY_A))
@@ -514,16 +566,22 @@ int main(void)
 
     // NOTE: OpenGL error checks have been omitted for brevity
 
-    // struct uniforms uniforms = configure_learning_example();
-    struct uniforms uniforms = configure_obj_example();
-    // struct uniforms uniforms = configure_simple_example();
+    struct Program program;
+    GLuint vertex_array;
+    GLuint vertex_buffers[COUNT_BUFFERS];
+    struct slice buffer_slices[COUNT_BUFFERS];
+    bool buffer_disabled[COUNT_BUFFERS] = {0};
+
+    load_program(&program, default_vert_file, default_frag_file);
+    size_t element_count = configure_obj_example(
+        &vertex_array, vertex_buffers, buffer_slices, buffer_disabled, program);
 
     glClearColor(.25, .25, .25, 1.0);
     // glPolygonMode(GL_FRONT, GL_LINE);
     // glPolygonMode(GL_BACK, GL_LINE);
-    glEnable(GL_CULL_FACE); // cull face
-    glCullFace(GL_BACK);    // cull back face
-    glFrontFace(GL_CCW);    // GL_CCW for counter clock-wise
+    // glEnable(GL_CULL_FACE); // cull face
+    // glCullFace(GL_BACK);    // cull back face
+    // glFrontFace(GL_CCW);    // GL_CCW for counter clock-wise
     glEnable(GL_DEPTH_TEST);
 
     struct Cam cam = new_cam();
@@ -541,13 +599,16 @@ int main(void)
         generate_projection(window, &proj);
         generate_model(&model, time);
 
-        render_object(&proj, &cam.view, &model, time, &uniforms);
+        render_object(
+            vertex_array, element_count, vertex_buffers, buffer_disabled,
+            program, &proj, &cam.view, &model, time);
 
         glfwPollEvents();
 
-        handle_camera_events(window, elapsed_seconds, &cam, &uniforms);
         glfwSwapBuffers(window);
-        handle_events(window, &uniforms);
+
+        handle_camera_events(window, elapsed_seconds, &cam);
+        handle_events(window, &program);
     }
 
     glfwDestroyWindow(window);
