@@ -8,6 +8,7 @@
 #include <callback.h>
 
 #include "obj3d.h"
+#include "types.h"
 
 #define LINE_BUF_SIZE 1024
 
@@ -327,7 +328,7 @@ struct slice faces_to_elements(struct slice faces_slice)
     return elements;
 }
 
-void load_obj_file(const char *obj_file_name, struct slice buffers[COUNT_BUFFERS])
+void load_obj_file(const char *obj_file_name, struct slice buffers[])
 {
     struct slice vertices_slice = {0, 0, sizeof(float), NULL};
     line_callback_t *vertices_callback = (line_callback_t *)alloc_callback(

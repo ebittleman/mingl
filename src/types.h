@@ -10,7 +10,7 @@ enum Buffers
 
 enum Uniforms
 {
-    U_MVP = 1,
+    U_MVP = 0,
     U_MODEL,
     U_VIEW,
     U_PROJECTION,
@@ -18,15 +18,5 @@ enum Uniforms
     COUNT_UNIFORMS
 };
 
-int BUFFER_SIZES[COUNT_BUFFERS] = {
-    3,
-    2,
-    3,
-    3,
-    3};
-
-const char *IN_NAMES[ELEMENTS] = {
-    "position",
-    "uv",
-    "normal",
-    "color"};
+extern const int BUFFER_SIZES[];
+extern const char *IN_NAMES[];

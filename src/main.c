@@ -12,6 +12,7 @@
 #include "linmath.h"
 #include "obj3d.h"
 #include "shaders.h"
+#include "types.h"
 
 #define TAU 6.28318530718
 
@@ -259,27 +260,17 @@ int main(void)
     struct Program program;
     load_program(&program, default_vert_file, default_frag_file);
 
-    const char *star_file = "assets/star.obj";
-    const char *arcade_file = "assets/arcade_obj.obj";
-    const char *ttop_file = "assets/Triceratops_base_mesh.obj";
-
-    object arcade;
-    arcade.program = program;
-    load_obj_file(arcade_file, arcade.buffer_slices);
-    setup_object_buffers(&arcade);
-
-    object star;
-    star.program = program;
-    load_obj_file(star_file, star.buffer_slices);
-    setup_object_buffers(&star);
-
-    object ttop;
-    ttop.program = program;
-    load_obj_file(ttop_file, ttop.buffer_slices);
-    setup_object_buffers(&ttop);
-
-    object objects[] = {
-        star, ttop, arcade};
+    const char *obj_files[] = {
+        "assets/star.obj",
+        "assets/arcade_obj.obj",
+        "assets/Triceratops_base_mesh.obj"};
+    object objects[3];
+    for (int x = 0; x < 3; x++)
+    {
+        objects[x].program = program;
+        load_obj_file(obj_files[x], objects[x].buffer_slices);
+        setup_object_buffers(&objects[x]);
+    }
     int count = sizeof(objects) / sizeof(object);
 
     glClearColor(.25, .25, .25, 1.0);
