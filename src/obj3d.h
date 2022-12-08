@@ -1,5 +1,8 @@
 #include <stddef.h>
+
 #include <callback.h>
+
+#include "types.h"
 
 #define DEFAULT_SLICE_CAP 10
 
@@ -52,3 +55,5 @@ int line_reader(
     line_callback_t *callback2,
     line_callback_t *callback3,
     line_callback_t *callback4);
+void load_obj_file(
+    const char *obj_file_name, struct slice buffers[COUNT_BUFFERS]);

@@ -1,9 +1,10 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <string.h>
-#include <errno.h>
 #include <ctype.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <callback.h>
 
 #include "obj3d.h"
@@ -324,4 +325,61 @@ struct slice faces_to_elements(struct slice faces_slice)
     }
 
     return elements;
+}
+
+void load_obj_file(const char *obj_file_name, struct slice buffers[COUNT_BUFFERS])
+{
+    struct slice vertices_slice = {0, 0, sizeof(float), NULL};
+    line_callback_t *vertices_callback = (line_callback_t *)alloc_callback(
+        (callback_function_t)&handle_vertex_line, &vertices_slice);
+
+    struct slice faces = new_slice(sizeof(int));
+    line_callback_t *faces_callback = (line_callback_t *)alloc_callback(
+        (callback_function_t)&handle_face_line, &faces);
+
+    struct slice normals_slice = new_slice(sizeof(float));
+    line_callback_t *normals_callback = (line_callback_t *)alloc_callback(
+        (callback_function_t)&handle_normal_line, &normals_slice);
+
+    struct slice uv_slice = new_slice(sizeof(float));
+    line_callback_t *uv_callback = (line_callback_t *)alloc_callback(
+        (callback_function_t)&handle_uv_line, &uv_slice);
+
+    line_reader(obj_file_name,
+                vertices_callback,
+                faces_callback,
+                normals_callback,
+                uv_callback);
+
+    free_callback((callback_t)vertices_callback);
+    free_callback((callback_t)faces_callback);
+    free_callback((callback_t)normals_callback);
+    free_callback((callback_t)uv_callback);
+
+    struct slice elements_slice = faces_to_elements(faces);
+    if (faces.cap > 0)
+    {
+        free(faces.data);
+    }
+
+    // printf("Found %d vertices\n", vertices.len);
+    // for (size_t i = 0; i < vertices.len; i+=3)
+    // {
+    //     printf("x: %f, y: %f, z: %f\n", verts[i], verts[i+1], verts[i+2]);
+    // }
+
+    // printf("Found %d elements\n", elements_slice.len);
+    // for (size_t i = 0; i < elements_slice.len; i += 3)
+    // {
+    //     printf("x: %d, y: %d, z: %d\n",
+    //            elements[i],
+    //            elements[i + 1],
+    //            elements[i + 2]);
+    // }
+
+    buffers[VERTS] = vertices_slice;
+    buffers[UVS] = uv_slice;
+    buffers[NORMALS] = normals_slice;
+    buffers[ELEMENTS] = elements_slice;
+    return;
 }
