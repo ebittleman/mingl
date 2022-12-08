@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "camera.h"
 
@@ -9,14 +10,14 @@ struct Cam new_cam()
 {
     struct Cam cam;
 
-    cam.cam_speed = 1.0f;
+    cam.cam_speed = 10.0f;
     cam.cam_yaw_speed = 5.0f;
     // cam.cam_pos[0] = -1.1f;
     // cam.cam_pos[1] = 1.62f;
     // cam.cam_pos[2] = 4.72f;
     cam.cam_pos[0] = 0.0f;
-    cam.cam_pos[1] = 0.0f;
-    cam.cam_pos[2] = 2.0f;
+    cam.cam_pos[1] = 99.0f;
+    cam.cam_pos[2] = 69.0f;
     cam.cam_yaw = 0.0f;
 
     update_cam(&cam);

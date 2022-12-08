@@ -21,7 +21,7 @@ static const char *frag_file = "src/shaders/learning.frag";
 
 static void error_callback(int error, const char *description)
 {
-    fprintf(stderr, "Error: %s\n", description);
+    fprintf(stderr, "OpenGL Error: %s\n", description);
 }
 
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -260,18 +260,21 @@ int main(void)
     struct Program program;
     load_program(&program, default_vert_file, default_frag_file);
 
-    const char *obj_files[] = {
+#define COUNT 4
+    const char *obj_files[COUNT] = {
+        "assets/math_form_1_obj.obj",
         "assets/star.obj",
         "assets/arcade_obj.obj",
-        "assets/Triceratops_base_mesh.obj"};
-    object objects[3];
-    for (int x = 0; x < 3; x++)
+        "assets/Triceratops_base_mesh.obj",
+    };
+
+    object objects[COUNT];
+    for (int x = 0; x < COUNT; x++)
     {
         objects[x].program = program;
         load_obj_file(obj_files[x], objects[x].buffer_slices);
         setup_object_buffers(&objects[x]);
     }
-    int count = sizeof(objects) / sizeof(object);
 
     glClearColor(.25, .25, .25, 1.0);
     // glPolygonMode(GL_FRONT, GL_LINE);
@@ -295,7 +298,7 @@ int main(void)
         _update_fps_counter(window, time);
         generate_projection(window, &proj);
 
-        for (int x = 0; x < count; x++)
+        for (int x = 0; x < COUNT; x++)
         {
             object obj = objects[x];
             generate_model(&obj.model, time);
