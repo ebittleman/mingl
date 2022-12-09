@@ -117,6 +117,8 @@ typedef struct _object
     mat4x4 model;
 } object;
 
+void calculate_normals(struct slice buffer_slices[COUNT_BUFFERS]);
+
 void setup_object_buffers(object *o)
 {
 
@@ -140,8 +142,58 @@ void setup_object_buffers(object *o)
     o->buffer_disabled[ELEMENTS] = !o->buffer_slices[ELEMENTS].len;
 
     o->element_count = o->buffer_slices[ELEMENTS].len;
+
     glBindVertexArray(0);
     return;
+}
+
+void calculate_normals(struct slice buffer_slices[COUNT_BUFFERS])
+{
+    if (buffer_slices[NORMALS].data != NULL)
+    {
+        free(buffer_slices[NORMALS].data);
+        buffer_slices[NORMALS].data = NULL;
+    }
+    buffer_slices[NORMALS].size = buffer_slices[VERTS].size;
+    buffer_slices[NORMALS].cap = buffer_slices[VERTS].cap;
+    buffer_slices[NORMALS].len = buffer_slices[VERTS].len;
+
+    buffer_slices[NORMALS].data = malloc(
+        buffer_slices[NORMALS].cap * buffer_slices[NORMALS].size);
+    memset(
+        buffer_slices[NORMALS].data, 0,
+        buffer_slices[NORMALS].cap * buffer_slices[NORMALS].size);
+
+    printf("Memory Initialized for normal calculations.\n");
+
+    int *elements = (int *)buffer_slices[ELEMENTS].data;
+    vec3 *vertices = (vec3 *)buffer_slices[VERTS].data;
+    vec3 *normals = (vec3 *)buffer_slices[NORMALS].data;
+
+    for (int x = 0; x < buffer_slices[ELEMENTS].len; x += 3)
+    {
+        vec3 normal, a, b;
+        float *p1 = vertices[elements[x]];
+        float *p2 = vertices[elements[x + 1]];
+        float *p3 = vertices[elements[x + 2]];
+
+        vec3_sub(a, p2, p1);
+        vec3_sub(a, p3, p1);
+        vec3_mul_cross(normal, a, b);
+
+        float *n1 = normals[elements[x]];
+        float *n2 = normals[elements[x + 1]];
+        float *n3 = normals[elements[x + 2]];
+
+        vec3_add(n1, n1, normal);
+        vec3_add(n2, n2, normal);
+        vec3_add(n3, n3, normal);
+    }
+
+    for (int x = 0; x < buffer_slices[NORMALS].len / 3; x++)
+    {
+        vec3_norm(normals[x], normals[x]);
+    }
 }
 
 void render_object(
@@ -196,9 +248,9 @@ void generate_model(mat4x4 m, mat4x4 obj, float time)
     // mat4x4_scale(m, m, 1.0f / 12.0f);
     // mat4x4_translate_in_place(m, .1f, .2f, .5f);
 
-    mat4x4_rotate_X(m, m, time * TAU * .1);
+    // mat4x4_rotate_X(m, m, time * TAU * .1);
     mat4x4_rotate_Y(m, m, time * TAU * .1);
-    mat4x4_rotate_Z(m, m, time * TAU * .1);
+    // mat4x4_rotate_Z(m, m, time * TAU * .1);
 
     // mat4x4_mul(m, m, obj);
     // debug_mat(m);
@@ -330,6 +382,11 @@ int main(void)
         memset(objects[x].buffer_slices, 0, sizeof(objects[x].buffer_slices));
         load_obj_file(obj_files[x], objects[x].buffer_slices, bounds);
         init_obj_model(objects[x].model, bounds, x);
+        if (!objects[x].buffer_slices[NORMALS].len)
+        {
+            printf("Need to calculate normals for this one.\n");
+            calculate_normals(objects[x].buffer_slices);
+        }
         setup_object_buffers(&objects[x]);
     }
 
