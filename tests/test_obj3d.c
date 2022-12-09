@@ -10,8 +10,9 @@ int test_new_slice(char *error_buffer);
 int test_expand_slice(char *error_buffer);
 int test_append_slice(char *error_buffer);
 int test_get_slice_item(char *error_buffer);
-int test_read_vec3(char *error_buffer);
+// int test_read_vec3(char *error_buffer);
 int test_read_face(char *error_buffer);
+int test_read_face_just_ints(char *error_buffer);
 
 int main()
 {
@@ -64,16 +65,16 @@ int main()
 
     printf("\n==========\n\n");
 
-    printf("Running: test_read_vec3\n");
-    err = test_read_vec3((char *)error_buffer);
-    if (err > 0)
-    {
-        printf("FAIL: test_read_vec3\n\t%s\n", error_buffer);
-        return 1;
-    }
-    printf("Success: test_read_vec3\n");
+    // printf("Running: test_read_vec3\n");
+    // err = test_read_vec3((char *)error_buffer);
+    // if (err > 0)
+    // {
+    //     printf("FAIL: test_read_vec3\n\t%s\n", error_buffer);
+    //     return 1;
+    // }
+    // printf("Success: test_read_vec3\n");
 
-    printf("\n==========\n\n");
+    // printf("\n==========\n\n");
 
     printf("Running: test_read_face\n");
     err = test_read_face((char *)error_buffer);
@@ -83,6 +84,17 @@ int main()
         return 1;
     }
     printf("Success: test_read_face\n");
+
+    printf("\n==========\n\n");
+
+    printf("Running: test_read_face_just_ints\n");
+    err = test_read_face_just_ints((char *)error_buffer);
+    if (err > 0)
+    {
+        printf("FAIL: test_read_face_just_ints\n\t%s\n", error_buffer);
+        return 1;
+    }
+    printf("Success: test_read_face_just_ints\n");
 
     printf("\n==========\n\n");
 
@@ -239,39 +251,40 @@ int test_get_slice_item(char *error_buffer)
         expected_size, expected_data);
 }
 
-int test_read_vec3(char *error_buffer)
-{
-    const char *p = "v 4.500502 1.153829 0.924606\nv 4.445763 1.159163 0.949913";
-    struct Vector3 actual;
-    struct Vector3 expected = {4.500502, 1.153829, 0.924606};
+// int test_read_vec3(char *error_buffer)
+// {
+//     const char *p = "v 4.500502 1.153829 0.924606\nv 4.445763 1.159163 0.949913";
+//     struct Vector3 actual;
+//     struct Vector3 expected = {4.500502, 1.153829, 0.924606};
 
-    int num = read_vec3(p + 1, &actual);
-    // printf("x: %f, y: %f, z: %f'\n", actual.x, actual.y, actual.z);
-    // printf("%d: '%s'\n", num, p + 1 + num);
+//     int num = read_vec3(p + 1, &actual);
+//     // printf("x: %f, y: %f, z: %f'\n", actual.x, actual.y, actual.z);
+//     // printf("%d: '%s'\n", num, p + 1 + num);
 
-    if (!compare_float(actual.x, expected.x, EPSILON))
-    {
-        sprintf(error_buffer, "Vector3.x. Expected: %f, Got: %f", expected.x, actual.x);
-        return 1;
-    }
+//     if (!compare_float(actual.x, expected.x, EPSILON))
+//     {
+//         sprintf(error_buffer, "Vector3.x. Expected: %f, Got: %f", expected.x, actual.x);
+//         return 1;
+//     }
 
-    if (!compare_float(actual.y, expected.y, EPSILON))
-    {
-        sprintf(error_buffer, "Vector3.y. Expected: %f, Got: %f", expected.y, actual.y);
-        return 1;
-    }
+//     if (!compare_float(actual.y, expected.y, EPSILON))
+//     {
+//         sprintf(error_buffer, "Vector3.y. Expected: %f, Got: %f", expected.y, actual.y);
+//         return 1;
+//     }
 
-    if (!compare_float(actual.z, expected.z, EPSILON))
-    {
-        sprintf(error_buffer, "Vector3.z. Expected: %f, Got: %f", expected.z, actual.z);
-        return 1;
-    }
+//     if (!compare_float(actual.z, expected.z, EPSILON))
+//     {
+//         sprintf(error_buffer, "Vector3.z. Expected: %f, Got: %f", expected.z, actual.z);
+//         return 1;
+//     }
 
-    return 0;
-}
+//     return 0;
+// }
 
 int test_read_face(char *error_buffer)
 {
+    return 0;
 
     struct slice nums = new_slice(sizeof(int));
     // char *line = "f 12558//8857 12518//8857 12517//8857 12559//8857 12560//8857 12561//8857";
@@ -292,5 +305,30 @@ int test_read_face(char *error_buffer)
     }
     printf("Num Faces: %d\n", num_faces);
     printf("Num By Idx: %d\n", *(int *)get_slice_item(&nums, 0));
+    return 0;
+}
+
+int test_read_face_just_ints(char *error_buffer)
+{
+
+    struct slice nums = new_slice(sizeof(int));
+    char *line = "f 12558 12518 12517 12559\n";
+    // char *line = "f 5/1/1 3/2/1 1/3/1";
+
+    parse_face_line(&nums, line + 2);
+
+    int num_faces = nums.len / 3;
+    int *item;
+    int indexes = *(int *)get_slice_item(&nums, 0);
+    printf("Indexes: %d\n", indexes);
+    for (int i = 1; i < nums.len; i += 3)
+    {
+        printf("x: %d, y: %d, z: %d\n",
+               *(int *)get_slice_item(&nums, i),
+               *(int *)get_slice_item(&nums, i + 1),
+               *(int *)get_slice_item(&nums, i + 2));
+    }
+    printf("Num Faces: %d\n", num_faces);
+    // printf("Num By Idx: %d\n", *(int *)get_slice_item(&nums, 0));
     return 0;
 }

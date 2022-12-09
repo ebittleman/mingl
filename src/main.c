@@ -96,6 +96,7 @@ void setup_vertex_attributes(
         }
         else
         {
+            // printf("enabled: %s\n", IN_NAMES[x]);
             glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[x]);
             glVertexAttribPointer(
                 program.buffers[x], BUFFER_SIZES[x], GL_FLOAT,
@@ -149,15 +150,15 @@ void render_object(
     GLuint vertex_buffers[COUNT_BUFFERS],
     bool buffer_disabled[COUNT_BUFFERS],
     struct Program program,
-    mat4x4 *proj,
-    mat4x4 *view,
-    mat4x4 *model,
+    mat4x4 proj,
+    mat4x4 view,
+    mat4x4 model,
     float time)
 {
 
     mat4x4 mvp;
-    mat4x4_mul(mvp, *proj, *view);
-    mat4x4_mul(mvp, mvp, *model);
+    mat4x4_mul(mvp, proj, view);
+    mat4x4_mul(mvp, mvp, model);
 
     glUseProgram(program.id);
     glBindVertexArray(vertex_array);
@@ -169,6 +170,9 @@ void render_object(
     glUniform1f(program.uniforms[U_TIME], time);
     setup_vertex_attributes(program, vertex_buffers, buffer_disabled);
 
+    // glDrawElements(
+    //     GL_QUADS, element_count,
+    //     GL_UNSIGNED_INT, (void *)0);
     glDrawElements(
         GL_TRIANGLES, element_count,
         GL_UNSIGNED_INT, (void *)0);
@@ -177,15 +181,27 @@ void render_object(
     // glDrawArrays(GL_POINTS, _uniforms->start, _uniforms->count);
 }
 
-void generate_model(mat4x4 *m, float time)
+void debug_mat(mat4x4 m)
 {
-    mat4x4_identity(*m);
+    printf("%f %f %f %f\n", m[0][0], m[0][1], m[0][2], m[0][3]);
+    printf("%f %f %f %f\n", m[1][0], m[1][1], m[1][2], m[1][3]);
+    printf("%f %f %f %f\n", m[2][0], m[2][1], m[2][2], m[2][3]);
+    printf("%f %f %f %f\n", m[3][0], m[3][1], m[3][2], m[3][3]);
+}
+
+void generate_model(mat4x4 m, mat4x4 obj, float time)
+{
+    mat4x4_dup(m, obj);
+    // mat4x4_identity(m);
     // mat4x4_scale(m, m, 1.0f / 12.0f);
     // mat4x4_translate_in_place(m, .1f, .2f, .5f);
 
-    // mat4x4_rotate_Z(*m, *m, time / .5);
-    // mat4x4_rotate_Y(*m, *m, time * TAU * .1);
-    // mat4x4_rotate_X(*m, *m, time * TAU * .1);
+    mat4x4_rotate_X(m, m, time * TAU * .1);
+    mat4x4_rotate_Y(m, m, time * TAU * .1);
+    mat4x4_rotate_Z(m, m, time * TAU * .1);
+
+    // mat4x4_mul(m, m, obj);
+    // debug_mat(m);
 }
 
 void generate_projection(GLFWwindow *window, mat4x4 *p)
@@ -199,7 +215,7 @@ void generate_projection(GLFWwindow *window, mat4x4 *p)
     glViewport(0, 0, width, height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // mat4x4_ortho(*p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-    mat4x4_perspective(*p, 90.0f, ratio, 0.1f, 100.0f);
+    mat4x4_perspective(*p, 120.0f, ratio, 0.1f, 1000.0f);
 }
 
 void handle_events(GLFWwindow *window, struct Program *program)
@@ -219,6 +235,42 @@ void handle_events(GLFWwindow *window, struct Program *program)
             program->frag_file);
         printf("reloaded shaders\n");
     }
+}
+
+void init_obj_model(mat4x4 m, float bounds[6], int x)
+{
+    mat4x4 S, T;
+    float ranges[3] = {
+        bounds[1] - bounds[0],
+        bounds[3] - bounds[2],
+        bounds[5] - bounds[4],
+    };
+    float max = ranges[0];
+    for (int x = 1; x < 3; x++)
+    {
+        if (ranges[x] > max)
+        {
+            max = ranges[x];
+        }
+    }
+
+    float scale = 1.0f / max;
+    mat4x4_identity(m);
+    mat4x4_translate_in_place(
+        m,
+        (-(bounds[0] * scale) - (ranges[0] / 2.0) * scale) + (x * 2),
+        -(bounds[2] * scale) - (ranges[1] / 2.0) * scale,
+        -(bounds[4] * scale) - (ranges[2] / 2.0) * scale);
+    mat4x4_identity(S);
+    mat4x4_scale_aniso(S, S, scale, scale, scale);
+    mat4x4_mul(m, m, S);
+
+    debug_mat(m);
+
+    // printf("%f %f %f %f\n", m[0][0], m[0][1], m[0][2], m[0][3]);
+    // printf("%f %f %f %f\n", m[1][0], m[1][1], m[1][2], m[1][3]);
+    // printf("%f %f %f %f\n", m[2][0], m[2][1], m[2][2], m[2][3]);
+    // printf("%f %f %f %f\n", m[3][0], m[3][1], m[3][2], m[3][3]);
 }
 
 int main(void)
@@ -260,33 +312,40 @@ int main(void)
     struct Program program;
     load_program(&program, default_vert_file, default_frag_file);
 
-#define COUNT 4
-    const char *obj_files[COUNT] = {
-        "assets/math_form_1_obj.obj",
-        "assets/star.obj",
+#define COUNT 6
+    const char *obj_files[] = {
+        "assets/only_quad_sphere.obj",
         "assets/arcade_obj.obj",
+        "assets/star.obj",
         "assets/Triceratops_base_mesh.obj",
+        "assets/abstract_object.obj",
+        "assets/math_form_1_obj.obj",
     };
 
     object objects[COUNT];
     for (int x = 0; x < COUNT; x++)
     {
+        float bounds[6] = {0};
         objects[x].program = program;
-        load_obj_file(obj_files[x], objects[x].buffer_slices);
+        memset(objects[x].buffer_slices, 0, sizeof(objects[x].buffer_slices));
+        load_obj_file(obj_files[x], objects[x].buffer_slices, bounds);
+        init_obj_model(objects[x].model, bounds, x);
         setup_object_buffers(&objects[x]);
     }
 
     glClearColor(.25, .25, .25, 1.0);
     // glPolygonMode(GL_FRONT, GL_LINE);
     // glPolygonMode(GL_BACK, GL_LINE);
-    glEnable(GL_CULL_FACE); // cull face
-    glCullFace(GL_BACK);    // cull back face
-    // glFrontFace(GL_CCW);    // GL_CCW for counter clock-wise
+    // glEnable(GL_CULL_FACE); // cull face
+    // glEnable(GL_CULL_FACE); // cull face
+    // glCullFace(GL_BACK);    // cull back face
+    // glFrontFace(GL_CW); // GL_CCW for counter clock-wise
     glEnable(GL_DEPTH_TEST);
 
     struct Cam cam = new_cam();
     mat4x4 proj;
 
+    mat4x4 model;
     while (!glfwWindowShouldClose(window))
     {
         static double previous_seconds = 0.0;
@@ -301,11 +360,11 @@ int main(void)
         for (int x = 0; x < COUNT; x++)
         {
             object obj = objects[x];
-            generate_model(&obj.model, time);
+            generate_model(model, obj.model, time);
             render_object(
                 obj.vertex_array, obj.element_count, obj.vertex_buffers,
-                obj.buffer_disabled, program, &proj, &cam.view,
-                &obj.model, time);
+                obj.buffer_disabled, program, proj, cam.view,
+                model, time);
         }
 
         glfwPollEvents();

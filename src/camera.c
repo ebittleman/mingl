@@ -15,9 +15,12 @@ struct Cam new_cam()
     // cam.cam_pos[0] = -1.1f;
     // cam.cam_pos[1] = 1.62f;
     // cam.cam_pos[2] = 4.72f;
+    // cam.cam_pos[0] = -75.0f;
+    // cam.cam_pos[1] = 121.0f;
+    // cam.cam_pos[2] = -100.0f;
     cam.cam_pos[0] = 0.0f;
-    cam.cam_pos[1] = 99.0f;
-    cam.cam_pos[2] = 69.0f;
+    cam.cam_pos[1] = 0.0f;
+    cam.cam_pos[2] = 15.0f;
     cam.cam_yaw = 0.0f;
 
     update_cam(&cam);

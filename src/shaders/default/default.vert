@@ -16,15 +16,13 @@ out vec2 uvInterp;
 out float timInterp;
 
 #define TAU 6.28318530718
+#define RED vec4(1,0,0,1)
 
 void main() {
-    float scale = 1.0f;
-    vec3 translate_by = vec3(0, 0, 0);
-    vec3 pos = (position * scale) + translate_by;
-
-    gl_Position = mvp_matrix * vec4(pos, 1.0);
-    colorInterp = proj_matrix * view_matrix * vec4(normal, 1.0f);
+    gl_Position = mvp_matrix * vec4(position, 1.0);
+    // colorInterp = RED;
+    // colorInterp = vec4(position, 1.0f);
+    colorInterp = vec4(normal, 1.0f);
     uvInterp = uv;
     timInterp = time;
-    // gl_Position = proj_matrix * view_matrix * model_matrix * vec4(pos, 1.0);
 }

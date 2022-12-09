@@ -7,6 +7,7 @@
 
 #include <callback.h>
 
+#include "linmath.h"
 #include "obj3d.h"
 #include "types.h"
 
@@ -198,6 +199,8 @@ void parse_face_line(struct slice *face_data, char *line)
     int num = -1;
     int idx = -1;
 
+    bool no_slashes = strchr(line, '/') == NULL;
+
     idx = face_data->len;
     append_slice(face_data, &num);
 
@@ -234,11 +237,17 @@ void parse_face_line(struct slice *face_data, char *line)
                 }
                 continue;
             }
+
             end = i;
             memset(num_buff, 0, sizeof(num_buff));
             strncpy(num_buff, cursor + start, end - start);
             num = atoi(num_buff);
             append_slice(face_data, &num);
+            if (no_slashes)
+            {
+                append_slice(face_data, &zero);
+                append_slice(face_data, &zero);
+            }
 
             reading = false;
         }
@@ -271,6 +280,11 @@ void parse_face_line(struct slice *face_data, char *line)
         strncpy(num_buff, cursor + start, end - start);
         num = atoi(num_buff);
         append_slice(face_data, &num);
+        if (no_slashes)
+        {
+            append_slice(face_data, &zero);
+            append_slice(face_data, &zero);
+        }
         reading = false;
     }
 
@@ -283,7 +297,7 @@ struct slice faces_to_elements(struct slice faces_slice)
     struct slice elements = new_slice(faces_slice.size);
 
     int *faces = (int *)faces_slice.data;
-    int face_buffer[16];
+    int face_buffer[32];
     for (int i = 0; i < faces_slice.len; i++)
     {
         int count = faces[i];
@@ -297,13 +311,26 @@ struct slice faces_to_elements(struct slice faces_slice)
             face_buffer[step] = faces[x] - 1;
             // printf("line_idx: %d, vert_idx: %d\n", step, faces[x]);
         }
-        for (int x = 0; x < (count / 3) - 2; x++)
+        // printf("count: %d\n", (count / 3));
+
+        int iters = (count / 3) - 2;
+
+        if (iters <= 0)
+        {
+            append_slice(&elements, &face_buffer[0]);
+            append_slice(&elements, &face_buffer[1]);
+            append_slice(&elements, &face_buffer[2]);
+            continue;
+        }
+
+        for (int x = 0; x < iters; x++)
         {
             if (x == 0)
             {
                 append_slice(&elements, &face_buffer[0]);
                 append_slice(&elements, &face_buffer[1]);
                 append_slice(&elements, &face_buffer[2]);
+                // append_slice(&elements, &face_buffer[3]);
                 // printf("%d, %d, %d\n",
                 //        face_buffer[0],
                 //        face_buffer[1],
@@ -312,9 +339,11 @@ struct slice faces_to_elements(struct slice faces_slice)
             else
             {
                 int offset = x + 1;
+                // int offset = x + 2;
+                append_slice(&elements, &face_buffer[0]);
                 append_slice(&elements, &face_buffer[offset]);
                 append_slice(&elements, &face_buffer[offset + 1]);
-                append_slice(&elements, &face_buffer[0]);
+                // append_slice(&elements, &face_buffer[offset + 2]);
                 // printf("%d, %d, %d\n",
                 //        face_buffer[offset],
                 //        face_buffer[offset + 1],
@@ -328,7 +357,7 @@ struct slice faces_to_elements(struct slice faces_slice)
     return elements;
 }
 
-void load_obj_file(const char *obj_file_name, struct slice buffers[])
+void load_obj_file(const char *obj_file_name, struct slice buffers[], float bounds[6])
 {
     struct slice vertices_slice = {0, 0, sizeof(float), NULL};
     line_callback_t *vertices_callback = (line_callback_t *)alloc_callback(
@@ -363,13 +392,41 @@ void load_obj_file(const char *obj_file_name, struct slice buffers[])
         free(faces.data);
     }
 
-    // printf("Found %d vertices\n", vertices.len);
-    // for (size_t i = 0; i < vertices.len; i+=3)
-    // {
-    //     printf("x: %f, y: %f, z: %f\n", verts[i], verts[i+1], verts[i+2]);
-    // }
+    printf("Found %d floats\n", vertices_slice.len);
+    // float bounds[6] = {0.0f};
+    vec3 *verts = (vec3 *)vertices_slice.data;
+    int num_verts = vertices_slice.len / 3;
 
-    // printf("Found %d elements\n", elements_slice.len);
+    bounds[0] = verts[0][0];
+    bounds[1] = verts[0][0];
+    bounds[2] = verts[0][1];
+    bounds[3] = verts[0][1];
+    bounds[4] = verts[0][2];
+    bounds[5] = verts[0][2];
+
+    for (size_t i = 1; i < num_verts; i++)
+    {
+        for (int y = 0; y < 3; y++)
+        {
+            int offset = y * 2;
+            if (verts[i][y] < bounds[offset])
+            {
+                bounds[offset] = verts[i][y];
+            }
+            else if (verts[i][y] > bounds[offset + 1])
+            {
+                bounds[offset + 1] = verts[i][y];
+            }
+        }
+
+        // printf("x: %f, y: %f, z: %f\n", verts[0], verts[1], verts[2]);
+    }
+
+    printf("min x: %f, max x: %f\n", bounds[0], bounds[1]);
+    printf("min y: %f, max y: %f\n", bounds[2], bounds[3]);
+    printf("min z: %f, max z: %f\n", bounds[4], bounds[5]);
+
+    printf("Found %d elements\n", elements_slice.len);
     // for (size_t i = 0; i < elements_slice.len; i += 3)
     // {
     //     printf("x: %d, y: %d, z: %d\n",
@@ -381,6 +438,7 @@ void load_obj_file(const char *obj_file_name, struct slice buffers[])
     buffers[VERTS] = vertices_slice;
     buffers[UVS] = uv_slice;
     buffers[NORMALS] = normals_slice;
+    buffers[COLORS] = new_slice(vertices_slice.size);
     buffers[ELEMENTS] = elements_slice;
     return;
 }
