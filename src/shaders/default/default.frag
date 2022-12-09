@@ -16,5 +16,6 @@ void main() {
     // vec2 col = mix(colorInterp.xy, uvInterp, 1.0);
     // vec4 col2 = vec4(col, colorInterp.z, 1);
     // outColor = vec4(mix(uvInterp.xxx, colorInterp.xyz, 1.0), 1.0f);
-    outColor = colorInterp;
+    // outColor = colorInterp;
+    outColor = vec4(uvInterp.xxx, 1);
 }

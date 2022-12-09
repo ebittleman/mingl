@@ -22,7 +22,8 @@ void main() {
     gl_Position = mvp_matrix * vec4(position, 1.0);
     // colorInterp = RED;
     // colorInterp = vec4(position, 1.0f);
-    colorInterp = vec4(normal, 1.0f);
+    colorInterp = vec4(mix(vec3(0, 0, 0), normal, 1), 1.0f);
+    // colorInterp = vec4(normal, 1.0f);
     uvInterp = uv;
     timInterp = time;
 }

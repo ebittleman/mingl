@@ -14,10 +14,165 @@
 #include "shaders.h"
 #include "types.h"
 
+#include "uv.h"
+
 #define TAU 6.28318530718
 
 static const char *vert_file = "src/shaders/learning.vert";
 static const char *frag_file = "src/shaders/learning.frag";
+
+#define COUNT 6
+static const char *obj_files[] = {
+    "assets/only_quad_sphere.obj",
+    "assets/arcade_obj.obj",
+    "assets/star.obj",
+    "assets/Triceratops_base_mesh.obj",
+    "assets/abstract_object.obj",
+    "assets/math_form_1_obj.obj",
+};
+
+typedef struct _program
+{
+    GLuint id;
+    const char *vert_file;
+    const char *frag_file;
+    GLint uniforms[COUNT_UNIFORMS];
+    GLint buffers[COUNT_BUFFERS - 1];
+} Program;
+
+typedef struct _object
+{
+    Program program;
+    GLuint vertex_array;
+    GLuint vertex_buffers[COUNT_BUFFERS];
+    struct slice buffer_slices[COUNT_BUFFERS];
+    bool buffer_disabled[COUNT_BUFFERS];
+    size_t element_count;
+    mat4x4 model;
+} object;
+
+void calculate_normals(struct slice buffer_slices[COUNT_BUFFERS]);
+void debug_mat(mat4x4 m)
+{
+    printf("%f %f %f %f\n", m[0][0], m[0][1], m[0][2], m[0][3]);
+    printf("%f %f %f %f\n", m[1][0], m[1][1], m[1][2], m[1][3]);
+    printf("%f %f %f %f\n", m[2][0], m[2][1], m[2][2], m[2][3]);
+    printf("%f %f %f %f\n", m[3][0], m[3][1], m[3][2], m[3][3]);
+}
+
+void calculate_normals(struct slice buffer_slices[COUNT_BUFFERS])
+{
+
+    reset_slice(&buffer_slices[NORMALS],
+                buffer_slices[VERTS].size,
+                buffer_slices[VERTS].len,
+                buffer_slices[VERTS].cap);
+
+    int *elements = (int *)buffer_slices[ELEMENTS].data;
+    vec3 *vertices = (vec3 *)buffer_slices[VERTS].data;
+    vec3 *normals = (vec3 *)buffer_slices[NORMALS].data;
+
+    vec3 normal, a, b;
+    for (int x = 0; x < buffer_slices[ELEMENTS].len; x += 3)
+    {
+        float *p1 = vertices[elements[x]];
+        float *p2 = vertices[elements[x + 1]];
+        float *p3 = vertices[elements[x + 2]];
+
+        vec3_sub(a, p2, p1);
+        vec3_sub(b, p3, p1);
+        vec3_mul_cross(normal, a, b);
+
+        float *n1 = normals[elements[x]];
+        float *n2 = normals[elements[x + 1]];
+        float *n3 = normals[elements[x + 2]];
+
+        vec3_add(n1, n1, normal);
+        vec3_add(n2, n2, normal);
+        vec3_add(n3, n3, normal);
+    }
+
+    for (int x = 0; x < buffer_slices[NORMALS].len / 3; x++)
+    {
+        vec3_norm(normals[x], normals[x]);
+    }
+}
+
+void inject_uv(struct slice buffer_slices[COUNT_BUFFERS])
+{
+    if (buffer_slices[UVS].data != NULL)
+    {
+        free(buffer_slices[UVS].data);
+    }
+    buffer_slices[UVS].data = (void *)ttop_uv;
+    buffer_slices[UVS].size = sizeof(float);
+    buffer_slices[UVS].cap = sizeof(s_uv);
+    buffer_slices[UVS].len = buffer_slices[UVS].cap / buffer_slices[UVS].size;
+}
+
+void init_obj_model(mat4x4 m, float bounds[6], int x, int count)
+{
+    mat4x4 S, T;
+    float ranges[3] = {
+        bounds[1] - bounds[0],
+        bounds[3] - bounds[2],
+        bounds[5] - bounds[4],
+    };
+    float max = ranges[0];
+    for (int x = 1; x < 3; x++)
+    {
+        if (ranges[x] > max)
+        {
+            max = ranges[x];
+        }
+    }
+
+    float scale = 1.0f / max;
+    mat4x4_translate( // starts with identity matrix then sets translation
+        m,
+        (-(bounds[0] * scale) - (ranges[0] / 2.0) * scale) + ((float)x * 2) - (float)count,
+        -(bounds[2] * scale) - (ranges[1] / 2.0) * scale,
+        -(bounds[4] * scale) - (ranges[2] / 2.0) * scale);
+    mat4x4_identity(S);
+    mat4x4_scale_aniso(S, S, scale, scale, scale);
+    mat4x4_mul(m, m, S);
+
+    debug_mat(m);
+
+    // printf("%f %f %f %f\n", m[0][0], m[0][1], m[0][2], m[0][3]);
+    // printf("%f %f %f %f\n", m[1][0], m[1][1], m[1][2], m[1][3]);
+    // printf("%f %f %f %f\n", m[2][0], m[2][1], m[2][2], m[2][3]);
+    // printf("%f %f %f %f\n", m[3][0], m[3][1], m[3][2], m[3][3]);
+}
+
+void calculate_model_position(mat4x4 m, mat4x4 obj, float time)
+{
+    mat4x4_dup(m, obj);
+    // mat4x4_identity(m);
+    // mat4x4_scale(m, m, 1.0f / 12.0f);
+    // mat4x4_translate_in_place(m, .1f, .2f, .5f);
+
+    // mat4x4_rotate_X(m, m, time * TAU * .1);
+    // mat4x4_rotate_Y(m, m, time * TAU * .1);
+    // mat4x4_rotate_Z(m, m, time * TAU * .1);
+
+    // mat4x4_mul(m, m, obj);
+    // debug_mat(m);
+}
+
+void calculate_projection_matrix(GLFWwindow *window, mat4x4 *p)
+{
+    float ratio;
+    int width, height;
+
+    glfwGetFramebufferSize(window, &width, &height);
+    ratio = width / (float)height;
+
+    glViewport(0, 0, width, height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // mat4x4_ortho(*p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
+    mat4x4_perspective(*p, 120.0f, ratio, 0.1f, 1000.0f);
+}
 
 static void error_callback(int error, const char *description)
 {
@@ -54,16 +209,7 @@ void _update_fps_counter(GLFWwindow *window, float current_seconds)
 const char *default_vert_file = "src/shaders/default/default.vert";
 const char *default_frag_file = "src/shaders/default/default.frag";
 
-struct Program
-{
-    GLuint id;
-    const char *vert_file;
-    const char *frag_file;
-    GLint uniforms[COUNT_UNIFORMS];
-    GLint buffers[COUNT_BUFFERS - 1];
-};
-
-void load_program(struct Program *program, const char *vert_file, const char *frag_file)
+void load_program(Program *program, const char *vert_file, const char *frag_file)
 {
     GLuint id = create_shader_program_from_files(vert_file, frag_file);
     program->id = id;
@@ -84,7 +230,7 @@ void load_program(struct Program *program, const char *vert_file, const char *fr
 }
 
 void setup_vertex_attributes(
-    struct Program program,
+    Program program,
     GLuint vertex_buffers[COUNT_BUFFERS],
     bool buffer_disabled[COUNT_BUFFERS])
 {
@@ -105,19 +251,6 @@ void setup_vertex_attributes(
         }
     }
 }
-
-typedef struct _object
-{
-    struct Program program;
-    GLuint vertex_array;
-    GLuint vertex_buffers[COUNT_BUFFERS];
-    struct slice buffer_slices[COUNT_BUFFERS];
-    bool buffer_disabled[COUNT_BUFFERS];
-    size_t element_count;
-    mat4x4 model;
-} object;
-
-void calculate_normals(struct slice buffer_slices[COUNT_BUFFERS]);
 
 void setup_object_buffers(object *o)
 {
@@ -147,61 +280,12 @@ void setup_object_buffers(object *o)
     return;
 }
 
-void calculate_normals(struct slice buffer_slices[COUNT_BUFFERS])
-{
-    if (buffer_slices[NORMALS].data != NULL)
-    {
-        free(buffer_slices[NORMALS].data);
-        buffer_slices[NORMALS].data = NULL;
-    }
-    buffer_slices[NORMALS].size = buffer_slices[VERTS].size;
-    buffer_slices[NORMALS].cap = buffer_slices[VERTS].cap;
-    buffer_slices[NORMALS].len = buffer_slices[VERTS].len;
-
-    buffer_slices[NORMALS].data = malloc(
-        buffer_slices[NORMALS].cap * buffer_slices[NORMALS].size);
-    memset(
-        buffer_slices[NORMALS].data, 0,
-        buffer_slices[NORMALS].cap * buffer_slices[NORMALS].size);
-
-    printf("Memory Initialized for normal calculations.\n");
-
-    int *elements = (int *)buffer_slices[ELEMENTS].data;
-    vec3 *vertices = (vec3 *)buffer_slices[VERTS].data;
-    vec3 *normals = (vec3 *)buffer_slices[NORMALS].data;
-
-    vec3 normal, a, b;
-    for (int x = 0; x < buffer_slices[ELEMENTS].len; x += 3)
-    {
-        float *p1 = vertices[elements[x]];
-        float *p2 = vertices[elements[x + 1]];
-        float *p3 = vertices[elements[x + 2]];
-
-        vec3_sub(a, p2, p1);
-        vec3_sub(b, p3, p1);
-        vec3_mul_cross(normal, a, b);
-
-        float *n1 = normals[elements[x]];
-        float *n2 = normals[elements[x + 1]];
-        float *n3 = normals[elements[x + 2]];
-
-        vec3_add(n1, n1, normal);
-        vec3_add(n2, n2, normal);
-        vec3_add(n3, n3, normal);
-    }
-
-    for (int x = 0; x < buffer_slices[NORMALS].len / 3; x++)
-    {
-        vec3_norm(normals[x], normals[x]);
-    }
-}
-
 void render_object(
     GLuint vertex_array,
     size_t element_count,
     GLuint vertex_buffers[COUNT_BUFFERS],
     bool buffer_disabled[COUNT_BUFFERS],
-    struct Program program,
+    Program program,
     mat4x4 proj,
     mat4x4 view,
     mat4x4 model,
@@ -233,44 +317,7 @@ void render_object(
     // glDrawArrays(GL_POINTS, _uniforms->start, _uniforms->count);
 }
 
-void debug_mat(mat4x4 m)
-{
-    printf("%f %f %f %f\n", m[0][0], m[0][1], m[0][2], m[0][3]);
-    printf("%f %f %f %f\n", m[1][0], m[1][1], m[1][2], m[1][3]);
-    printf("%f %f %f %f\n", m[2][0], m[2][1], m[2][2], m[2][3]);
-    printf("%f %f %f %f\n", m[3][0], m[3][1], m[3][2], m[3][3]);
-}
-
-void generate_model(mat4x4 m, mat4x4 obj, float time)
-{
-    mat4x4_dup(m, obj);
-    // mat4x4_identity(m);
-    // mat4x4_scale(m, m, 1.0f / 12.0f);
-    // mat4x4_translate_in_place(m, .1f, .2f, .5f);
-
-    // mat4x4_rotate_X(m, m, time * TAU * .1);
-    mat4x4_rotate_Y(m, m, time * TAU * .1);
-    // mat4x4_rotate_Z(m, m, time * TAU * .1);
-
-    // mat4x4_mul(m, m, obj);
-    // debug_mat(m);
-}
-
-void generate_projection(GLFWwindow *window, mat4x4 *p)
-{
-    float ratio;
-    int width, height;
-
-    glfwGetFramebufferSize(window, &width, &height);
-    ratio = width / (float)height;
-
-    glViewport(0, 0, width, height);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // mat4x4_ortho(*p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-    mat4x4_perspective(*p, 120.0f, ratio, 0.1f, 1000.0f);
-}
-
-void handle_events(GLFWwindow *window, struct Program *program)
+void handle_events(GLFWwindow *window, Program *program)
 {
     static bool reload_key_pressed = false;
     bool down = glfwGetKey(window, GLFW_KEY_R);
@@ -287,42 +334,6 @@ void handle_events(GLFWwindow *window, struct Program *program)
             program->frag_file);
         printf("reloaded shaders\n");
     }
-}
-
-void init_obj_model(mat4x4 m, float bounds[6], int x)
-{
-    mat4x4 S, T;
-    float ranges[3] = {
-        bounds[1] - bounds[0],
-        bounds[3] - bounds[2],
-        bounds[5] - bounds[4],
-    };
-    float max = ranges[0];
-    for (int x = 1; x < 3; x++)
-    {
-        if (ranges[x] > max)
-        {
-            max = ranges[x];
-        }
-    }
-
-    float scale = 1.0f / max;
-    mat4x4_identity(m);
-    mat4x4_translate_in_place(
-        m,
-        (-(bounds[0] * scale) - (ranges[0] / 2.0) * scale) + (x * 2),
-        -(bounds[2] * scale) - (ranges[1] / 2.0) * scale,
-        -(bounds[4] * scale) - (ranges[2] / 2.0) * scale);
-    mat4x4_identity(S);
-    mat4x4_scale_aniso(S, S, scale, scale, scale);
-    mat4x4_mul(m, m, S);
-
-    debug_mat(m);
-
-    // printf("%f %f %f %f\n", m[0][0], m[0][1], m[0][2], m[0][3]);
-    // printf("%f %f %f %f\n", m[1][0], m[1][1], m[1][2], m[1][3]);
-    // printf("%f %f %f %f\n", m[2][0], m[2][1], m[2][2], m[2][3]);
-    // printf("%f %f %f %f\n", m[3][0], m[3][1], m[3][2], m[3][3]);
 }
 
 int main(void)
@@ -361,18 +372,8 @@ int main(void)
 
     // NOTE: OpenGL error checks have been omitted for brevity
 
-    struct Program program;
+    Program program;
     load_program(&program, default_vert_file, default_frag_file);
-
-#define COUNT 6
-    const char *obj_files[] = {
-        "assets/only_quad_sphere.obj",
-        "assets/arcade_obj.obj",
-        "assets/star.obj",
-        "assets/Triceratops_base_mesh.obj",
-        "assets/abstract_object.obj",
-        "assets/math_form_1_obj.obj",
-    };
 
     object objects[COUNT];
     for (int x = 0; x < COUNT; x++)
@@ -381,19 +382,24 @@ int main(void)
         objects[x].program = program;
         memset(objects[x].buffer_slices, 0, sizeof(objects[x].buffer_slices));
         load_obj_file(obj_files[x], objects[x].buffer_slices, bounds);
-        init_obj_model(objects[x].model, bounds, x);
         if (!objects[x].buffer_slices[NORMALS].len)
         {
-            printf("Need to calculate normals for this one.\n");
             calculate_normals(objects[x].buffer_slices);
         }
+        if (x == 3)
+        {
+            inject_uv(objects[x].buffer_slices);
+        }
+        init_obj_model(objects[x].model, bounds, x, COUNT);
+
+        // send geometry to OpenGL
         setup_object_buffers(&objects[x]);
     }
 
     glClearColor(.25, .25, .25, 1.0);
     // glPolygonMode(GL_FRONT, GL_LINE);
     // glPolygonMode(GL_BACK, GL_LINE);
-    // glEnable(GL_CULL_FACE); // cull face
+    // glPolygonMode(GL_BACK, GL_LINE);
     // glEnable(GL_CULL_FACE); // cull face
     // glCullFace(GL_BACK);    // cull back face
     // glFrontFace(GL_CW); // GL_CCW for counter clock-wise
@@ -412,15 +418,15 @@ int main(void)
 
         float time = (float)current_seconds;
         _update_fps_counter(window, time);
-        generate_projection(window, &proj);
+        calculate_projection_matrix(window, &proj);
 
         for (int x = 0; x < COUNT; x++)
         {
             object obj = objects[x];
-            generate_model(model, obj.model, time);
+            calculate_model_position(model, obj.model, time);
             render_object(
                 obj.vertex_array, obj.element_count, obj.vertex_buffers,
-                obj.buffer_disabled, program, proj, cam.view,
+                obj.buffer_disabled, obj.program, proj, cam.view,
                 model, time);
         }
 

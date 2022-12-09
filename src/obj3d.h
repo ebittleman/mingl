@@ -35,6 +35,7 @@ struct slice new_slice(size_t size);
 void expand_slice(struct slice *s);
 void append_slice(struct slice *s, void *item);
 void *get_slice_item(struct slice *s, int i);
+void reset_slice(struct slice *s, int size, int len, int cap);
 
 void parse_uv_line(struct slice *normal_data, char *line);
 void parse_face_line(struct slice *num_buffer, char *line);

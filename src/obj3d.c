@@ -78,6 +78,21 @@ void *get_slice_item(struct slice *s, int i)
     return NULL;
 }
 
+void reset_slice(struct slice *s, int size, int len, int cap)
+{
+    if (s->data != NULL)
+    {
+        free(s->data);
+        s->data = NULL;
+    }
+    s->size = size;
+    s->len = len;
+    s->cap = cap;
+
+    s->data = malloc(s->cap * s->size);
+    memset(s->data, 0, s->cap * s->size);
+}
+
 int line_reader(
     const char *filename,
     line_callback_t *callback,
@@ -357,6 +372,8 @@ struct slice faces_to_elements(struct slice faces_slice)
     return elements;
 }
 
+void noop(char *line) {}
+
 void load_obj_file(const char *obj_file_name, struct slice buffers[], float bounds[6])
 {
     struct slice vertices_slice = {0, 0, sizeof(float), NULL};
@@ -367,9 +384,13 @@ void load_obj_file(const char *obj_file_name, struct slice buffers[], float boun
     line_callback_t *faces_callback = (line_callback_t *)alloc_callback(
         (callback_function_t)&handle_face_line, &faces);
 
+    // struct slice normals_slice = new_slice(sizeof(float));
+    // line_callback_t *normals_callback = (line_callback_t *)alloc_callback(
+    //     (callback_function_t)&handle_normal_line, &normals_slice);
+
     struct slice normals_slice = new_slice(sizeof(float));
     line_callback_t *normals_callback = (line_callback_t *)alloc_callback(
-        (callback_function_t)&handle_normal_line, &normals_slice);
+        (callback_function_t)&noop, &normals_slice);
 
     struct slice uv_slice = new_slice(sizeof(float));
     line_callback_t *uv_callback = (line_callback_t *)alloc_callback(
@@ -383,7 +404,7 @@ void load_obj_file(const char *obj_file_name, struct slice buffers[], float boun
 
     free_callback((callback_t)vertices_callback);
     free_callback((callback_t)faces_callback);
-    free_callback((callback_t)normals_callback);
+    // free_callback((callback_t)normals_callback);
     free_callback((callback_t)uv_callback);
 
     struct slice elements_slice = faces_to_elements(faces);
