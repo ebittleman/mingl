@@ -170,15 +170,15 @@ void calculate_normals(struct slice buffer_slices[COUNT_BUFFERS])
     vec3 *vertices = (vec3 *)buffer_slices[VERTS].data;
     vec3 *normals = (vec3 *)buffer_slices[NORMALS].data;
 
+    vec3 normal, a, b;
     for (int x = 0; x < buffer_slices[ELEMENTS].len; x += 3)
     {
-        vec3 normal, a, b;
         float *p1 = vertices[elements[x]];
         float *p2 = vertices[elements[x + 1]];
         float *p3 = vertices[elements[x + 2]];
 
         vec3_sub(a, p2, p1);
-        vec3_sub(a, p3, p1);
+        vec3_sub(b, p3, p1);
         vec3_mul_cross(normal, a, b);
 
         float *n1 = normals[elements[x]];
