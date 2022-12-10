@@ -9,18 +9,17 @@
 
 #include "linmath.h"
 #include "obj3d.h"
-#include "types.h"
 
 #define LINE_BUF_SIZE 1024
 
-struct slice new_slice(size_t size)
+slice new_slice(size_t size)
 {
-    struct slice s = {0, DEFAULT_SLICE_CAP, size, malloc(size * DEFAULT_SLICE_CAP)};
+    slice s = {0, DEFAULT_SLICE_CAP, size, malloc(size * DEFAULT_SLICE_CAP)};
 
     return s;
 }
 
-void expand_slice(struct slice *s)
+void expand_slice(slice *s)
 {
     void *old_data = s->data;
 
@@ -45,7 +44,7 @@ void expand_slice(struct slice *s)
     old_data = NULL;
 }
 
-void append_slice(struct slice *s, void *item)
+void append_slice(slice *s, void *item)
 {
     if (s->len + 1 > s->cap)
     {
@@ -58,7 +57,19 @@ void append_slice(struct slice *s, void *item)
     s->len += 1;
 }
 
-void set_slice_item(struct slice *s, int i, void *item)
+void extend_slice(slice *s, int n, void *item)
+{
+    if (s->len + n > s->cap)
+    {
+        expand_slice(s);
+    }
+    char *data = (char *)s->data;
+    void *dst = &data[s->len * s->size];
+    memcpy(dst, item, n * s->size);
+    s->len += n;
+}
+
+void set_slice_item(slice *s, int i, void *item)
 {
     if (0 <= i && i < s->len)
     {
@@ -67,7 +78,7 @@ void set_slice_item(struct slice *s, int i, void *item)
         memcpy(dst, item, s->size);
     }
 }
-void *get_slice_item(struct slice *s, int i)
+void *get_slice_item(slice *s, int i)
 {
     if (0 <= i && i < s->len)
     {
@@ -78,7 +89,7 @@ void *get_slice_item(struct slice *s, int i)
     return NULL;
 }
 
-void reset_slice(struct slice *s, int size, int len, int cap)
+void reset_slice(slice *s, int size, int len, int cap)
 {
     if (s->data != NULL)
     {
@@ -136,7 +147,7 @@ fail:
     return result;
 }
 
-void parse_vec3_line(struct slice *vec3_data, char *line)
+void parse_vec3_line(slice *vec3_data, char *line)
 {
     float x, y, z;
     sscanf(line, "%f %f %f", &x, &y, &z);
@@ -145,7 +156,7 @@ void parse_vec3_line(struct slice *vec3_data, char *line)
     append_slice(vec3_data, &z);
 }
 
-void parse_uv_line(struct slice *normal_data, char *line)
+void parse_uv_line(slice *normal_data, char *line)
 {
     float u, v;
     sscanf(line, "%f %f", &u, &v);
@@ -153,7 +164,7 @@ void parse_uv_line(struct slice *normal_data, char *line)
     append_slice(normal_data, &v);
 }
 
-void handle_vertex_line(struct slice *vertices, va_alist list)
+void handle_vertex_line(slice *vertices, va_alist list)
 {
     char *line = va_arg_ptr(list, char *);
 
@@ -165,10 +176,8 @@ void handle_vertex_line(struct slice *vertices, va_alist list)
     parse_vec3_line(vertices, line + 2);
 }
 
-void handle_normal_line(struct slice *normal_data, va_alist list)
+void handle_normal_line(slice *normal_data, va_alist list)
 {
-    struct Vector3 vec3;
-
     char *line = va_arg_ptr(list, char *);
 
     char *pre = "vn ";
@@ -179,10 +188,8 @@ void handle_normal_line(struct slice *normal_data, va_alist list)
     parse_vec3_line(normal_data, line + 3);
 }
 
-void handle_uv_line(struct slice *uv_data, va_alist list)
+void handle_uv_line(slice *uv_data, va_alist list)
 {
-    struct Vector3 vec3;
-
     char *line = va_arg_ptr(list, char *);
 
     char *pre = "vt ";
@@ -193,10 +200,8 @@ void handle_uv_line(struct slice *uv_data, va_alist list)
     parse_uv_line(uv_data, line + 2);
 }
 
-void handle_face_line(struct slice *face_data, va_alist list)
+void handle_face_line(slice *face_data, va_alist list)
 {
-    struct Vector3 vec3;
-
     char *line = va_arg_ptr(list, char *);
 
     char *pre = "f ";
@@ -207,7 +212,7 @@ void handle_face_line(struct slice *face_data, va_alist list)
     parse_face_line(face_data, line + 2);
 }
 
-void parse_face_line(struct slice *face_data, char *line)
+void parse_face_line(slice *face_data, char *line)
 {
 
     int zero = 0;
@@ -307,9 +312,9 @@ void parse_face_line(struct slice *face_data, char *line)
     set_slice_item(face_data, idx, &count);
 }
 
-struct slice faces_to_elements(struct slice faces_slice)
+slice faces_to_elements(slice faces_slice)
 {
-    struct slice elements = new_slice(faces_slice.size);
+    slice elements = new_slice(faces_slice.size);
 
     int *faces = (int *)faces_slice.data;
     int face_buffer[32];
@@ -374,25 +379,25 @@ struct slice faces_to_elements(struct slice faces_slice)
 
 void noop(char *line) {}
 
-void load_obj_file(const char *obj_file_name, struct slice buffers[], float bounds[6])
+void load_obj_file(const char *obj_file_name, slice buffers[], float bounds[6])
 {
-    struct slice vertices_slice = {0, 0, sizeof(float), NULL};
+    slice vertices_slice = new_slice(sizeof(float));
     line_callback_t *vertices_callback = (line_callback_t *)alloc_callback(
         (callback_function_t)&handle_vertex_line, &vertices_slice);
 
-    struct slice faces = new_slice(sizeof(int));
+    slice faces = new_slice(sizeof(int));
     line_callback_t *faces_callback = (line_callback_t *)alloc_callback(
         (callback_function_t)&handle_face_line, &faces);
 
-    // struct slice normals_slice = new_slice(sizeof(float));
+    // slice normals_slice = new_slice(sizeof(float));
     // line_callback_t *normals_callback = (line_callback_t *)alloc_callback(
     //     (callback_function_t)&handle_normal_line, &normals_slice);
 
-    struct slice normals_slice = new_slice(sizeof(float));
+    slice normals_slice = new_slice(sizeof(float));
     line_callback_t *normals_callback = (line_callback_t *)alloc_callback(
         (callback_function_t)&noop, &normals_slice);
 
-    struct slice uv_slice = new_slice(sizeof(float));
+    slice uv_slice = new_slice(sizeof(float));
     line_callback_t *uv_callback = (line_callback_t *)alloc_callback(
         (callback_function_t)&handle_uv_line, &uv_slice);
 
@@ -407,7 +412,7 @@ void load_obj_file(const char *obj_file_name, struct slice buffers[], float boun
     // free_callback((callback_t)normals_callback);
     free_callback((callback_t)uv_callback);
 
-    struct slice elements_slice = faces_to_elements(faces);
+    slice elements_slice = faces_to_elements(faces);
     if (faces.cap > 0)
     {
         free(faces.data);

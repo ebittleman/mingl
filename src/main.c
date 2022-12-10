@@ -1,8 +1,10 @@
 
+#include <dirent.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <strings.h>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -18,40 +20,46 @@
 
 #define TAU 6.28318530718
 
+typedef const char *string;
+
 static const char *vert_file = "src/shaders/learning.vert";
 static const char *frag_file = "src/shaders/learning.frag";
 
 #define COUNT 6
-static const char *obj_files[] = {
-    "assets/only_quad_sphere.obj",
-    "assets/arcade_obj.obj",
-    "assets/star.obj",
-    "assets/Triceratops_base_mesh.obj",
-    "assets/abstract_object.obj",
-    "assets/math_form_1_obj.obj",
-};
 
-typedef struct _program
+string ASSET_DIR = "assets";
+static slice strings = {0, 0, sizeof(char), NULL};
+
+int list_files(string dir_name, slice *files)
 {
-    GLuint id;
-    const char *vert_file;
-    const char *frag_file;
-    GLint uniforms[COUNT_UNIFORMS];
-    GLint buffers[COUNT_BUFFERS - 1];
-} Program;
+    struct dirent *de;
+    DIR *dr = opendir(dir_name);
+    char dir_sep = '/';
+    if (dr == NULL) // opendir returns NULL if couldn't open directory
+    {
+        printf("Could not open current directory");
+        return -1;
+    }
 
-typedef struct _object
-{
-    Program program;
-    GLuint vertex_array;
-    GLuint vertex_buffers[COUNT_BUFFERS];
-    struct slice buffer_slices[COUNT_BUFFERS];
-    bool buffer_disabled[COUNT_BUFFERS];
-    size_t element_count;
-    mat4x4 model;
-} object;
+    while ((de = readdir(dr)) != NULL)
+    {
+        size_t len = strlen(de->d_name);
+        if (strstr(de->d_name, ".obj") == NULL)
+        {
+            continue;
+        }
+        size_t dst = strings.len * strings.size;
+        append_slice(files, &dst);
+        extend_slice(&strings, strlen(dir_name), (void *)dir_name);
+        append_slice(&strings, &dir_sep);
+        extend_slice(&strings, strlen(de->d_name) + 1, de->d_name);
+    }
 
-void calculate_normals(struct slice buffer_slices[COUNT_BUFFERS]);
+    closedir(dr);
+    return 0;
+}
+
+void calculate_normals(slice buffer_slices[COUNT_BUFFERS]);
 void debug_mat(mat4x4 m)
 {
     printf("%f %f %f %f\n", m[0][0], m[0][1], m[0][2], m[0][3]);
@@ -60,7 +68,7 @@ void debug_mat(mat4x4 m)
     printf("%f %f %f %f\n", m[3][0], m[3][1], m[3][2], m[3][3]);
 }
 
-void calculate_normals(struct slice buffer_slices[COUNT_BUFFERS])
+void calculate_normals(slice buffer_slices[COUNT_BUFFERS])
 {
 
     reset_slice(&buffer_slices[NORMALS],
@@ -96,15 +104,16 @@ void calculate_normals(struct slice buffer_slices[COUNT_BUFFERS])
     {
         vec3_norm(normals[x], normals[x]);
     }
+    return;
 }
 
-void inject_uv(struct slice buffer_slices[COUNT_BUFFERS])
+void inject_uv(slice buffer_slices[COUNT_BUFFERS], float *uvs)
 {
     if (buffer_slices[UVS].data != NULL)
     {
         free(buffer_slices[UVS].data);
     }
-    buffer_slices[UVS].data = (void *)ttop_uv;
+    buffer_slices[UVS].data = (void *)uvs;
     buffer_slices[UVS].size = sizeof(float);
     buffer_slices[UVS].cap = sizeof(s_uv);
     buffer_slices[UVS].len = buffer_slices[UVS].cap / buffer_slices[UVS].size;
@@ -229,29 +238,6 @@ void load_program(Program *program, const char *vert_file, const char *frag_file
     }
 }
 
-void setup_vertex_attributes(
-    Program program,
-    GLuint vertex_buffers[COUNT_BUFFERS],
-    bool buffer_disabled[COUNT_BUFFERS])
-{
-    for (int x = 0; x < ELEMENTS; x++)
-    {
-        if (buffer_disabled[x])
-        {
-            glDisableVertexAttribArray(program.buffers[x]);
-        }
-        else
-        {
-            // printf("enabled: %s\n", IN_NAMES[x]);
-            glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[x]);
-            glVertexAttribPointer(
-                program.buffers[x], BUFFER_SIZES[x], GL_FLOAT,
-                GL_FALSE, 0, (void *)0);
-            glEnableVertexAttribArray(program.buffers[x]);
-        }
-    }
-}
-
 void setup_object_buffers(object *o)
 {
 
@@ -280,6 +266,29 @@ void setup_object_buffers(object *o)
     return;
 }
 
+void setup_vertex_attributes(
+    Program program,
+    GLuint vertex_buffers[COUNT_BUFFERS],
+    bool buffer_disabled[COUNT_BUFFERS])
+{
+    for (int x = 0; x < ELEMENTS; x++)
+    {
+        if (buffer_disabled[x])
+        {
+            glDisableVertexAttribArray(program.buffers[x]);
+        }
+        else
+        {
+            // printf("enabled: %s\n", IN_NAMES[x]);
+            glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[x]);
+            glVertexAttribPointer(
+                program.buffers[x], BUFFER_SIZES[x], GL_FLOAT,
+                GL_FALSE, 0, (void *)0);
+            glEnableVertexAttribArray(program.buffers[x]);
+        }
+    }
+}
+
 void render_object(
     GLuint vertex_array,
     size_t element_count,
@@ -306,15 +315,10 @@ void render_object(
     glUniform1f(program.uniforms[U_TIME], time);
     setup_vertex_attributes(program, vertex_buffers, buffer_disabled);
 
-    // glDrawElements(
-    //     GL_QUADS, element_count,
-    //     GL_UNSIGNED_INT, (void *)0);
     glDrawElements(
         GL_TRIANGLES, element_count,
         GL_UNSIGNED_INT, (void *)0);
     glBindVertexArray(0);
-    // glDrawArrays(GL_TRIANGLES, _uniforms->start, _uniforms->count);
-    // glDrawArrays(GL_POINTS, _uniforms->start, _uniforms->count);
 }
 
 void handle_events(GLFWwindow *window, Program *program)
@@ -334,6 +338,14 @@ void handle_events(GLFWwindow *window, Program *program)
             program->frag_file);
         printf("reloaded shaders\n");
     }
+}
+
+size_t d_strlen(const char *in)
+{
+    size_t len = 0;
+    while (!(in[len] == '\0' && in[len + 1] == '\0'))
+        ++len;
+    return len;
 }
 
 int main(void)
@@ -375,20 +387,33 @@ int main(void)
     Program program;
     load_program(&program, default_vert_file, default_frag_file);
 
+    slice files = new_slice(sizeof(size_t));
+    size_t *idx = (size_t *)files.data;
+    int err = list_files(ASSET_DIR, &files);
+    if (err < 0)
+    {
+        return err;
+    }
+
     object objects[COUNT];
     for (int x = 0; x < COUNT; x++)
     {
+        char *filename = strings.data + idx[x];
         float bounds[6] = {0};
         objects[x].program = program;
         memset(objects[x].buffer_slices, 0, sizeof(objects[x].buffer_slices));
-        load_obj_file(obj_files[x], objects[x].buffer_slices, bounds);
+        load_obj_file(filename, objects[x].buffer_slices, bounds);
         if (!objects[x].buffer_slices[NORMALS].len)
         {
             calculate_normals(objects[x].buffer_slices);
         }
+        if (x == 0)
+        {
+            inject_uv(objects[x].buffer_slices, s_uv);
+        }
         if (x == 3)
         {
-            inject_uv(objects[x].buffer_slices);
+            inject_uv(objects[x].buffer_slices, ttop_uv);
         }
         init_obj_model(objects[x].model, bounds, x, COUNT);
 

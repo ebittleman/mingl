@@ -7,6 +7,8 @@
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
 
+#include "shaders.h"
+
 // set a max limit on shader length to avoid dynamic memory allocation
 #define MAX_SHADER_SZ 100000
 

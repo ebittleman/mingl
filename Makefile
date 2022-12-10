@@ -1,11 +1,11 @@
 .DEFAULT_GOAL := all
 
 PROJECT_NAME := mingl
-THIRD_PARTY := GLAD GLFW # assimp
-THIRD_PARTY_LIBS := glfw3 # assimp # built from source
+THIRD_PARTY := GLAD # GLFW assimp
+THIRD_PARTY_LIBS := #glfw3 # assimp # built from source
 
 BUILTIN_LIBS := opengl32 gdi32 m # installed with the base toolchain
-EXT_LIBS := ffcall # installed from package manager
+EXT_LIBS := ffcall glfw3# installed from package manager
 LIBS := $(THIRD_PARTY_LIBS) $(EXT_LIBS)  $(BUILTIN_LIBS) 
 
 SRC_DIR := src
@@ -68,3 +68,7 @@ test.exe: ./tests/test_obj3d.c $(TEST_OBJ) |  $(EXE_FILE)
 .PHONY: test
 test: test.exe
 	@./$< && (rm -f $<; echo Tests Succeeded.) || (echo "Tests Failed"; rm -f $<)
+
+.PHONY: info
+info:
+	@echo $(LINK.c) -Isrc -o $@ $^ $(LDLIBS)
