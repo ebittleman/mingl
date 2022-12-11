@@ -1,0 +1,21 @@
+{
+    "files.associations": {
+        "glfw3.h": "c",
+        "stdio.h": "c",
+        "stdlib.h": "c",
+        "stdbool.h": "c",
+        "malloc.h": "c",
+        "gl.h": "c",
+        "scene.h": "c",
+        "cimport.h": "c",
+        "postprocess.h": "c",
+        "assert.h": "c",
+        "stddef.h": "c",
+        "string.h": "c",
+        "callback.h": "c",
+        "stdarg.h": "c",
+        "types.h": "c",
+        "obj3d.h": "c",
+        "uv.h": "c"
+    }
+}

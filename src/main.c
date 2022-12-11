@@ -275,6 +275,7 @@ void setup_vertex_attributes(
     {
         if (buffer_disabled[x])
         {
+            // printf("disabled: %s\n", IN_NAMES[x]);
             glDisableVertexAttribArray(program.buffers[x]);
         }
         else

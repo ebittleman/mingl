@@ -4,6 +4,7 @@
 #define TYPES_H
 
 #include <glad/gl.h>
+#include "data_structures.h"
 #include "linmath.h"
 
 enum Buffers
@@ -40,15 +41,6 @@ const static char *IN_NAMES[ELEMENTS] = {
     "normal",   // NORMALS
     "color"     // COLORS
 };
-
-typedef struct _slice
-{
-    size_t len;
-    size_t cap;
-    size_t size;
-
-    void *data;
-} slice;
 
 typedef struct _program
 {
