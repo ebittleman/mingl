@@ -59,9 +59,8 @@ int list_files(string dir_name, slice *files)
     return 0;
 }
 
-void calculate_normals(slice buffer_slices[COUNT_BUFFERS]);
-
-void calculate_normals(slice buffer_slices[COUNT_BUFFERS])
+// requires `glDrawArrays`
+void calculate_normals_per_face(slice buffer_slices[COUNT_BUFFERS])
 {
 
     reset_slice(&buffer_slices[NORMALS],
@@ -69,10 +68,8 @@ void calculate_normals(slice buffer_slices[COUNT_BUFFERS])
                 buffer_slices[VERTS].len,
                 buffer_slices[VERTS].cap);
 
-    // int *elements = (int *)buffer_slices[ELEMENTS].data;
     vec3 *vertices = (vec3 *)buffer_slices[VERTS].data;
     vec3 *normals = (vec3 *)buffer_slices[NORMALS].data;
-    // memset(normals, 0, buffer_slices[NORMALS].size * buffer_slices[NORMALS].cap);
 
     vec3 normal, a, b;
     for (int x = 0; x < buffer_slices[VERTS].len; x += 3)
@@ -94,17 +91,50 @@ void calculate_normals(slice buffer_slices[COUNT_BUFFERS])
         vec3_dup(n1, normal);
         vec3_dup(n2, normal);
         vec3_dup(n3, normal);
-        // vec3_add(n1, n1, normal);
-        // vec3_add(n2, n2, normal);
-        // vec3_add(n3, n3, normal);
     }
 
-    // for (int x = 0; x < buffer_slices[NORMALS].len / 3; x++)
-    // {
-    //     vec3_norm(normals[x], normals[x]);
-    // }
     return;
 }
+
+// requires `glDrawElements`
+// void calculate_normal_per_vertex(slice buffer_slices[COUNT_BUFFERS])
+// {
+
+//     reset_slice(&buffer_slices[NORMALS],
+//                 buffer_slices[VERTS].size,
+//                 buffer_slices[VERTS].len,
+//                 buffer_slices[VERTS].cap);
+
+//     int *elements = (int *)buffer_slices[ELEMENTS].data;
+//     vec3 *vertices = (vec3 *)buffer_slices[VERTS].data;
+//     vec3 *normals = (vec3 *)buffer_slices[NORMALS].data;
+
+//     vec3 normal, a, b;
+//     for (int x = 0; x < buffer_slices[ELEMENTS].len; x += 3)
+//     {
+//         float *p1 = vertices[elements[x]];
+//         float *p2 = vertices[elements[x + 1]];
+//         float *p3 = vertices[elements[x + 2]];
+
+//         vec3_sub(a, p2, p1);
+//         vec3_sub(b, p3, p1);
+//         vec3_mul_cross(normal, a, b);
+
+//         float *n1 = normals[elements[x]];
+//         float *n2 = normals[elements[x + 1]];
+//         float *n3 = normals[elements[x + 2]];
+
+//         vec3_add(n1, n1, normal);
+//         vec3_add(n2, n2, normal);
+//         vec3_add(n3, n3, normal);
+//     }
+
+//     for (int x = 0; x < buffer_slices[NORMALS].len / 3; x++)
+//     {
+//         vec3_norm(normals[x], normals[x]);
+//     }
+//     return;
+// }
 
 void inject_uv(slice buffer_slices[COUNT_BUFFERS], float *uvs)
 {
@@ -433,7 +463,7 @@ int main(void)
 
         if (!objects[x].buffer_slices[NORMALS].len)
         {
-            calculate_normals(objects[x].buffer_slices);
+            calculate_normals_per_face(objects[x].buffer_slices);
         }
 
         if (x == 0)

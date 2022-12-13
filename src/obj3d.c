@@ -124,10 +124,10 @@ void parse_face_line(slice *element_data, char *line)
 
     bool no_slashes = strchr(line, '/') == NULL;
 
-    size_t face_data[18];
+    size_t face_data[256];
     size_t count = 0;
 
-    char num_buff[32] = {0}; // 32 chars + terminator */
+    char num_buff[256] = {0}; // 32 chars + terminator */
     int len = strlen(line);
 
     int i = 0;
@@ -213,7 +213,7 @@ void parse_face_line(slice *element_data, char *line)
 
 void faces_to_elements(slice *elements, size_t n, size_t face_data[])
 {
-    int face_buffer[32];
+    int face_buffer[256];
     for (int x = 0; x < n; x += 3)
     {
         int step = (n - (n - x)) / 3;
