@@ -3,7 +3,9 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <stdio.h>
 #include <glad/gl.h>
+
 #include "data_structures.h"
 #include "linmath.h"
 
@@ -23,6 +25,7 @@ enum Uniforms
     U_MODEL,
     U_VIEW,
     U_PROJECTION,
+    U_CAM_POS,
     U_TIME,
     COUNT_UNIFORMS
 };
@@ -48,12 +51,12 @@ typedef struct _program
     const char *vert_file;
     const char *frag_file;
     GLint uniforms[COUNT_UNIFORMS];
-    GLint buffers[COUNT_BUFFERS - 1];
+    GLint input_locations[ELEMENTS];
 } Program;
 
 typedef struct _object
 {
-    Program program;
+    Program *program;
     GLuint vertex_array;
     GLuint vertex_buffers[COUNT_BUFFERS];
     slice buffer_slices[COUNT_BUFFERS];

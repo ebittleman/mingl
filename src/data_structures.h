@@ -2,6 +2,7 @@
 #define DATA_STRUCTURES_H
 
 #include <stddef.h>
+#include "linmath.h"
 
 #define DEFAULT_SLICE_CAP 10
 typedef struct _slice
@@ -19,5 +20,7 @@ void append_slice(slice *s, void *item);
 void extend_slice(slice *s, int n, void *item);
 void *get_slice_item(slice *s, int i);
 void reset_slice(slice *s, int size, int len, int cap);
+
+void debug_mat(mat4x4 m);
 
 #endif

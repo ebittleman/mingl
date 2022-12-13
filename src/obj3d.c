@@ -262,26 +262,29 @@ void faces_to_elements(slice *elements, size_t n, size_t face_data[])
 
 void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS], float bounds[6])
 {
-    slice vertices_slice = new_slice(sizeof(float));
+    slice vertices_index_slice = new_slice(sizeof(float));
     slice normals_slice = new_slice(sizeof(float));
     slice uv_slice = new_slice(sizeof(float));
     slice elements_slice = new_slice(sizeof(int));
 
     line_callback_t *callbacks[COUNT_BUFFERS];
     callbacks[VERTS] = &handle_vertex_line;
-    callbacks[UVS] = &handle_uv_line;
+
+    // callbacks[UVS] = &handle_uv_line;
     // callbacks[NORMALS] = &handle_normal_line;
+    callbacks[UVS] = &handle_noop;
     callbacks[NORMALS] = &handle_noop;
     callbacks[COLORS] = &handle_noop;
+
     callbacks[ELEMENTS] = &handle_face_line;
 
-    slice *buff_ptr[COUNT_BUFFERS];
-    buffers[VERTS] = vertices_slice;
+    buffers[VERTS] = vertices_index_slice;
     buffers[UVS] = uv_slice;
     buffers[NORMALS] = normals_slice;
     buffers[COLORS] = new_slice(sizeof(float));
     buffers[ELEMENTS] = elements_slice;
 
+    slice *buff_ptr[COUNT_BUFFERS];
     buff_ptr[VERTS] = &buffers[VERTS];
     buff_ptr[UVS] = &buffers[UVS];
     buff_ptr[NORMALS] = &buffers[NORMALS];
@@ -290,30 +293,30 @@ void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS], floa
 
     line_reader(obj_file_name, callbacks, buff_ptr);
 
-    vertices_slice = buffers[VERTS];
-    printf("Found %d vertices\n", vertices_slice.len);
-    vec3 *verts = (vec3 *)vertices_slice.data;
-    int num_verts = vertices_slice.len / 3;
+    vertices_index_slice = buffers[VERTS];
+    printf("Found %d vertices\n", vertices_index_slice.len);
+    vec3 *vertices_index = (vec3 *)vertices_index_slice.data;
+    int num_verts = vertices_index_slice.len / 3;
 
-    bounds[0] = verts[0][0];
-    bounds[1] = verts[0][0];
-    bounds[2] = verts[0][1];
-    bounds[3] = verts[0][1];
-    bounds[4] = verts[0][2];
-    bounds[5] = verts[0][2];
+    bounds[0] = vertices_index[0][0];
+    bounds[1] = vertices_index[0][0];
+    bounds[2] = vertices_index[0][1];
+    bounds[3] = vertices_index[0][1];
+    bounds[4] = vertices_index[0][2];
+    bounds[5] = vertices_index[0][2];
 
     for (size_t i = 1; i < num_verts; i++)
     {
         for (int y = 0; y < 3; y++)
         {
             int offset = y * 2;
-            if (verts[i][y] < bounds[offset])
+            if (vertices_index[i][y] < bounds[offset])
             {
-                bounds[offset] = verts[i][y];
+                bounds[offset] = vertices_index[i][y];
             }
-            else if (verts[i][y] > bounds[offset + 1])
+            else if (vertices_index[i][y] > bounds[offset + 1])
             {
-                bounds[offset + 1] = verts[i][y];
+                bounds[offset + 1] = vertices_index[i][y];
             }
         }
 
@@ -324,7 +327,24 @@ void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS], floa
     printf("min y: %f, max y: %f\n", bounds[2], bounds[3]);
     printf("min z: %f, max z: %f\n", bounds[4], bounds[5]);
 
-    printf("Found %d elements\n", buffers[ELEMENTS].len);
+    // TODO: expand verts, normals, and uvs, then free everything not leaving
+    slice vertices_slice = new_slice(sizeof(vec3));
+    int *elements = (int *)buffers[ELEMENTS].data;
+    for (int x = 0; x < buffers[ELEMENTS].len; x += 3)
+    {
+        float *p1 = vertices_index[elements[x]];
+        float *p2 = vertices_index[elements[x + 1]];
+        float *p3 = vertices_index[elements[x + 2]];
+        append_slice(&vertices_slice, p1);
+        append_slice(&vertices_slice, p2);
+        append_slice(&vertices_slice, p3);
+    }
+
+    buffers[VERTS] = vertices_slice;
+
+    free(vertices_index_slice.data);
+
+    // printf("Found %d elements\n", buffers[ELEMENTS].len);
     // for (size_t i = 0; i < elements_slice.len; i += 3)
     // {
     //     printf("x: %d, y: %d, z: %d\n",

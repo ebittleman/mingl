@@ -60,13 +60,6 @@ int list_files(string dir_name, slice *files)
 }
 
 void calculate_normals(slice buffer_slices[COUNT_BUFFERS]);
-void debug_mat(mat4x4 m)
-{
-    printf("%f %f %f %f\n", m[0][0], m[0][1], m[0][2], m[0][3]);
-    printf("%f %f %f %f\n", m[1][0], m[1][1], m[1][2], m[1][3]);
-    printf("%f %f %f %f\n", m[2][0], m[2][1], m[2][2], m[2][3]);
-    printf("%f %f %f %f\n", m[3][0], m[3][1], m[3][2], m[3][3]);
-}
 
 void calculate_normals(slice buffer_slices[COUNT_BUFFERS])
 {
@@ -76,34 +69,40 @@ void calculate_normals(slice buffer_slices[COUNT_BUFFERS])
                 buffer_slices[VERTS].len,
                 buffer_slices[VERTS].cap);
 
-    int *elements = (int *)buffer_slices[ELEMENTS].data;
+    // int *elements = (int *)buffer_slices[ELEMENTS].data;
     vec3 *vertices = (vec3 *)buffer_slices[VERTS].data;
     vec3 *normals = (vec3 *)buffer_slices[NORMALS].data;
+    // memset(normals, 0, buffer_slices[NORMALS].size * buffer_slices[NORMALS].cap);
 
     vec3 normal, a, b;
-    for (int x = 0; x < buffer_slices[ELEMENTS].len; x += 3)
+    for (int x = 0; x < buffer_slices[VERTS].len; x += 3)
     {
-        float *p1 = vertices[elements[x]];
-        float *p2 = vertices[elements[x + 1]];
-        float *p3 = vertices[elements[x + 2]];
+        float *p1 = vertices[x];
+        float *p2 = vertices[x + 1];
+        float *p3 = vertices[x + 2];
 
         vec3_sub(a, p2, p1);
         vec3_sub(b, p3, p1);
         vec3_mul_cross(normal, a, b);
 
-        float *n1 = normals[elements[x]];
-        float *n2 = normals[elements[x + 1]];
-        float *n3 = normals[elements[x + 2]];
+        float *n1 = normals[x];
+        float *n2 = normals[x + 1];
+        float *n3 = normals[x + 2];
 
-        vec3_add(n1, n1, normal);
-        vec3_add(n2, n2, normal);
-        vec3_add(n3, n3, normal);
+        vec3_norm(normal, normal);
+
+        vec3_dup(n1, normal);
+        vec3_dup(n2, normal);
+        vec3_dup(n3, normal);
+        // vec3_add(n1, n1, normal);
+        // vec3_add(n2, n2, normal);
+        // vec3_add(n3, n3, normal);
     }
 
-    for (int x = 0; x < buffer_slices[NORMALS].len / 3; x++)
-    {
-        vec3_norm(normals[x], normals[x]);
-    }
+    // for (int x = 0; x < buffer_slices[NORMALS].len / 3; x++)
+    // {
+    //     vec3_norm(normals[x], normals[x]);
+    // }
     return;
 }
 
@@ -218,6 +217,24 @@ void _update_fps_counter(GLFWwindow *window, float current_seconds)
 const char *default_vert_file = "src/shaders/default/default.vert";
 const char *default_frag_file = "src/shaders/default/default.frag";
 
+void set_uniforms_and_inputs(
+    GLuint id, GLint uniforms[COUNT_UNIFORMS],
+    GLint input_locations[ELEMENTS])
+{
+    uniforms[U_MVP] = glGetUniformLocation(id, "mvp_matrix");
+    uniforms[U_MODEL] = glGetUniformLocation(id, "model_matrix");
+    uniforms[U_VIEW] = glGetUniformLocation(id, "view_matrix");
+    uniforms[U_PROJECTION] = glGetUniformLocation(id, "proj_matrix");
+    uniforms[U_CAM_POS] = glGetUniformLocation(id, "cam_pos");
+    uniforms[U_TIME] = glGetUniformLocation(id, "time");
+
+    // buffer attributes
+    for (int x = 0; x < ELEMENTS; x++)
+    {
+        input_locations[x] = glGetAttribLocation(id, IN_NAMES[x]);
+    }
+}
+
 void load_program(Program *program, const char *vert_file, const char *frag_file)
 {
     GLuint id = create_shader_program_from_files(vert_file, frag_file);
@@ -225,20 +242,34 @@ void load_program(Program *program, const char *vert_file, const char *frag_file
     program->vert_file = vert_file;
     program->frag_file = frag_file;
 
-    program->uniforms[U_MVP] = glGetUniformLocation(id, "mvp_matrix");
-    program->uniforms[U_MODEL] = glGetUniformLocation(id, "model_matrix");
-    program->uniforms[U_VIEW] = glGetUniformLocation(id, "view_matrix");
-    program->uniforms[U_PROJECTION] = glGetUniformLocation(id, "proj_matrix");
-    program->uniforms[U_TIME] = glGetUniformLocation(id, "time");
+    set_uniforms_and_inputs(id, program->uniforms, program->input_locations);
+}
 
-    // buffer attributes
+void configure_vertex_attributes(
+    GLuint vertex_buffers[COUNT_BUFFERS],
+    GLint input_locations[ELEMENTS],
+    bool buffer_disabled[COUNT_BUFFERS])
+{
     for (int x = 0; x < ELEMENTS; x++)
     {
-        program->buffers[x] = glGetAttribLocation(id, IN_NAMES[x]);
+        if (buffer_disabled[x])
+        {
+            // printf("disabled: %s\n", IN_NAMES[x]);
+            glDisableVertexAttribArray(input_locations[x]);
+        }
+        else
+        {
+            // printf("enabled: %s\n", IN_NAMES[x]);
+            glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[x]);
+            glVertexAttribPointer(
+                input_locations[x], BUFFER_SIZES[x], GL_FLOAT,
+                GL_FALSE, 0, (void *)0);
+            glEnableVertexAttribArray(input_locations[x]);
+        }
     }
 }
 
-void setup_object_buffers(object *o)
+void buffer_object_to_vao(object *o)
 {
 
     glGenVertexArrays(1, &o->vertex_array);
@@ -254,48 +285,30 @@ void setup_object_buffers(object *o)
         o->buffer_disabled[x] = !o->buffer_slices[x].len;
     }
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, o->vertex_buffers[ELEMENTS]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 o->buffer_slices[ELEMENTS].len * o->buffer_slices[ELEMENTS].size,
-                 o->buffer_slices[ELEMENTS].data, GL_STATIC_DRAW);
-    o->buffer_disabled[ELEMENTS] = !o->buffer_slices[ELEMENTS].len;
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, o->vertex_buffers[ELEMENTS]);
+    // glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+    //              o->buffer_slices[ELEMENTS].len * o->buffer_slices[ELEMENTS].size,
+    //              o->buffer_slices[ELEMENTS].data, GL_STATIC_DRAW);
+    // o->buffer_disabled[ELEMENTS] = !o->buffer_slices[ELEMENTS].len;
 
-    o->element_count = o->buffer_slices[ELEMENTS].len;
+    // o->element_count = o->buffer_slices[ELEMENTS].len;
+    o->element_count = o->buffer_slices[VERTS].len;
+
+    configure_vertex_attributes(
+        o->vertex_buffers, o->program->input_locations,
+        o->buffer_disabled);
 
     glBindVertexArray(0);
     return;
 }
 
-void setup_vertex_attributes(
-    Program program,
-    GLuint vertex_buffers[COUNT_BUFFERS],
-    bool buffer_disabled[COUNT_BUFFERS])
-{
-    for (int x = 0; x < ELEMENTS; x++)
-    {
-        if (buffer_disabled[x])
-        {
-            // printf("disabled: %s\n", IN_NAMES[x]);
-            glDisableVertexAttribArray(program.buffers[x]);
-        }
-        else
-        {
-            // printf("enabled: %s\n", IN_NAMES[x]);
-            glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[x]);
-            glVertexAttribPointer(
-                program.buffers[x], BUFFER_SIZES[x], GL_FLOAT,
-                GL_FALSE, 0, (void *)0);
-            glEnableVertexAttribArray(program.buffers[x]);
-        }
-    }
-}
-
 void render_object(
     GLuint vertex_array,
     size_t element_count,
-    GLuint vertex_buffers[COUNT_BUFFERS],
-    bool buffer_disabled[COUNT_BUFFERS],
+
     Program program,
+    vec3 cam_pos,
+
     mat4x4 proj,
     mat4x4 view,
     mat4x4 model,
@@ -307,22 +320,29 @@ void render_object(
     mat4x4_mul(mvp, mvp, model);
 
     glUseProgram(program.id);
-    glBindVertexArray(vertex_array);
 
     glUniformMatrix4fv(program.uniforms[U_MVP], 1, GL_FALSE, (const GLfloat *)&mvp);
     glUniformMatrix4fv(program.uniforms[U_MODEL], 1, GL_FALSE, (const GLfloat *)model);
     glUniformMatrix4fv(program.uniforms[U_VIEW], 1, GL_FALSE, (const GLfloat *)view);
     glUniformMatrix4fv(program.uniforms[U_PROJECTION], 1, GL_FALSE, (const GLfloat *)proj);
-    glUniform1f(program.uniforms[U_TIME], time);
-    setup_vertex_attributes(program, vertex_buffers, buffer_disabled);
 
-    glDrawElements(
-        GL_TRIANGLES, element_count,
-        GL_UNSIGNED_INT, (void *)0);
+    glUniform3fv(program.uniforms[U_CAM_POS], 1, cam_pos);
+
+    glUniform1f(program.uniforms[U_TIME], time);
+
+    glBindVertexArray(vertex_array);
+    glDrawArrays(GL_TRIANGLES, 0, element_count);
+    // glDrawElements(
+    //     GL_TRIANGLES, element_count,
+    //     GL_UNSIGNED_INT, (void *)0);
     glBindVertexArray(0);
 }
 
-void handle_events(GLFWwindow *window, Program *program)
+void render_shape()
+{
+}
+
+bool handle_events(GLFWwindow *window, Program *program)
 {
     static bool reload_key_pressed = false;
     bool down = glfwGetKey(window, GLFW_KEY_R);
@@ -337,8 +357,14 @@ void handle_events(GLFWwindow *window, Program *program)
             &program->id,
             program->vert_file,
             program->frag_file);
+        set_uniforms_and_inputs(
+            program->id, program->uniforms,
+            program->input_locations);
         printf("reloaded shaders\n");
+        return true;
     }
+
+    return false;
 }
 
 size_t d_strlen(const char *in)
@@ -401,13 +427,15 @@ int main(void)
     {
         char *filename = strings.data + idx[x];
         float bounds[6] = {0};
-        objects[x].program = program;
+        objects[x].program = &program;
         memset(objects[x].buffer_slices, 0, sizeof(objects[x].buffer_slices));
         load_obj_file(filename, objects[x].buffer_slices, bounds);
+
         if (!objects[x].buffer_slices[NORMALS].len)
         {
             calculate_normals(objects[x].buffer_slices);
         }
+
         if (x == 0)
         {
             inject_uv(objects[x].buffer_slices, s_uv);
@@ -419,7 +447,7 @@ int main(void)
         init_obj_model(objects[x].model, bounds, x, COUNT);
 
         // send geometry to OpenGL
-        setup_object_buffers(&objects[x]);
+        buffer_object_to_vao(&objects[x]);
     }
 
     glClearColor(.25, .25, .25, 1.0);
@@ -445,21 +473,29 @@ int main(void)
         float time = (float)current_seconds;
         _update_fps_counter(window, time);
         calculate_projection_matrix(window, &proj);
+        handle_camera_events(window, elapsed_seconds, &cam);
+        bool reloaded = handle_events(window, &program);
 
         for (int x = 0; x < COUNT; x++)
         {
             object obj = objects[x];
             calculate_model_position(model, obj.model, time);
+            if (reloaded)
+            {
+                glUseProgram(obj.program->id);
+                glBindVertexArray(obj.vertex_array);
+                configure_vertex_attributes(
+                    obj.vertex_buffers, obj.program->input_locations,
+                    obj.buffer_disabled);
+            }
             render_object(
-                obj.vertex_array, obj.element_count, obj.vertex_buffers,
-                obj.buffer_disabled, obj.program, proj, cam.view,
+                obj.vertex_array, obj.element_count,
+                *obj.program, cam.cam_pos, proj, cam.view,
                 model, time);
         }
 
-        glfwPollEvents();
         glfwSwapBuffers(window);
-        handle_camera_events(window, elapsed_seconds, &cam);
-        handle_events(window, &program);
+        glfwPollEvents();
     }
 
     glfwDestroyWindow(window);

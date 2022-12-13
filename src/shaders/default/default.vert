@@ -4,6 +4,7 @@ uniform mat4 mvp_matrix;
 uniform mat4 proj_matrix;
 uniform mat4 view_matrix;
 uniform mat4 model_matrix;
+uniform vec3 cam_pos;
 uniform float time;
 
 layout(location = 0) in vec3 position;
@@ -13,6 +14,8 @@ layout(location = 3) in vec3 color;
 
 out vec4 colorInterp;
 out vec2 uvInterp;
+out vec3 fragPosInterp;
+out vec3 normalInterp;
 out float timInterp;
 
 #define TAU 6.28318530718
@@ -22,8 +25,12 @@ void main() {
     gl_Position = mvp_matrix * vec4(position, 1.0);
     // colorInterp = RED;
     // colorInterp = vec4(position, 1.0f);
-    colorInterp = vec4(mix(vec3(0, 0, 0), normal, 1), 1.0f);
+    // colorInterp = vec4(mix(vec3(0, 0, 0), normal, 1), 1.0f);
+    // colorInterp = vec4(uv.xxx, 1.0f);
     // colorInterp = vec4(normal, 1.0f);
+    colorInterp = vec4(0.6f, 0.6f, 0.6f, 2.0f);
     uvInterp = uv;
     timInterp = time;
+    normalInterp = normal;
+    fragPosInterp = vec3(model_matrix * vec4(position, 1.0));
 }

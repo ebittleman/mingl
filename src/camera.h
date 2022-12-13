@@ -5,9 +5,11 @@
 
 struct Cam
 {
+    float cam_pos[3];
+    float cam_look_at[3];
+
     float cam_speed;
     float cam_yaw_speed;
-    float cam_pos[3];
     float cam_yaw;
     mat4x4 T;
     mat4x4 R;

@@ -1,17 +1,16 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "camera.h"
-
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+
+#include "camera.h"
+#include "types.h"
 
 struct Cam new_cam()
 {
     struct Cam cam;
 
-    cam.cam_speed = 10.0f;
-    cam.cam_yaw_speed = 5.0f;
     // cam.cam_pos[0] = -1.1f;
     // cam.cam_pos[1] = 1.62f;
     // cam.cam_pos[2] = 4.72f;
@@ -20,7 +19,14 @@ struct Cam new_cam()
     // cam.cam_pos[2] = -100.0f;
     cam.cam_pos[0] = 0.0f;
     cam.cam_pos[1] = 0.0f;
-    cam.cam_pos[2] = 15.0f;
+    cam.cam_pos[2] = 5.0f;
+
+    cam.cam_look_at[0] = 0.0f;
+    cam.cam_look_at[1] = 0.0f;
+    cam.cam_look_at[2] = -1.0f;
+
+    cam.cam_speed = 1.0f;
+    cam.cam_yaw_speed = 5.0f;
     cam.cam_yaw = 0.0f;
 
     update_cam(&cam);
@@ -30,10 +36,14 @@ struct Cam new_cam()
 
 void update_cam(struct Cam *cam)
 {
-    mat4x4_translate(cam->T, -cam->cam_pos[0], -cam->cam_pos[1], -cam->cam_pos[2]);
-    mat4x4_identity(cam->R);
-    mat4x4_rotate_Y(cam->R, cam->R, -cam->cam_yaw);
-    mat4x4_mul(cam->view, cam->R, cam->T);
+    static const vec3 up = {0.0f, 1.0f, 0.0};
+    // mat4x4_translate(cam->T, -cam->cam_pos[0], -cam->cam_pos[1], -cam->cam_pos[2]);
+    // mat4x4_identity(cam->R);
+    // mat4x4_rotate_Y(cam->R, cam->R, -cam->cam_yaw);
+    // mat4x4_mul(cam->view, cam->R, cam->T);
+    vec3 eye;
+    vec3_add(eye, cam->cam_pos, cam->cam_look_at);
+    mat4x4_look_at(cam->view, cam->cam_pos, eye, up);
 }
 
 void handle_camera_events(
@@ -73,17 +83,34 @@ void handle_camera_events(
     if (glfwGetKey(window, GLFW_KEY_LEFT))
     {
         cam->cam_yaw += cam->cam_yaw_speed * elapsed_seconds;
+        cam->cam_look_at[0] += cam->cam_yaw_speed * elapsed_seconds;
         cam_moved = true;
     }
     if (glfwGetKey(window, GLFW_KEY_RIGHT))
     {
         cam->cam_yaw -= cam->cam_yaw_speed * elapsed_seconds;
+        cam->cam_look_at[0] -= cam->cam_yaw_speed * elapsed_seconds;
+        cam_moved = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_UP))
+    {
+        // cam->cam_yaw += cam->cam_yaw_speed * elapsed_seconds;
+        cam->cam_look_at[1] += cam->cam_yaw_speed * elapsed_seconds;
+        cam_moved = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_DOWN))
+    {
+        // cam->cam_yaw -= cam->cam_yaw_speed * elapsed_seconds;
+        cam->cam_look_at[1] -= cam->cam_yaw_speed * elapsed_seconds;
         cam_moved = true;
     }
 
     if (cam_moved)
     {
         update_cam(cam);
+        // printf("Cam Yaw: %f, %f, %f\n", cam->cam_yaw);
+        // debug_mat(cam->view);
+
         // printf("Cam Position: %f, %f, %f\n",
         //        cam->cam_pos[0],
         //        cam->cam_pos[1],
