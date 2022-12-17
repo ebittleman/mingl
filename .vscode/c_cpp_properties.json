@@ -3,6 +3,7 @@
         {
             "name": "Win32",
             "includePath": [
+                "${workspaceFolder}/tests",
                 "${workspaceFolder}/third_party/GLAD/include",
                 "${workspaceFolder}/src",
                 "C:/msys64/ucrt64/include",
@@ -19,8 +20,8 @@
             "compilerPath": "C:/msys64/ucrt64/bin/gcc.exe",
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "intelliSenseMode": "gcc-x64",
-            "configurationProvider": "ms-vscode.makefile-tools"
+            "intelliSenseMode": "windows-gcc-x64",
+            "configurationProvider": "ms-vscode.cmake-tools"
         }
     ],
     "version": 4

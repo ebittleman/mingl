@@ -18,5 +18,6 @@ struct Cam
 
 struct Cam new_cam();
 void update_cam(struct Cam *cam);
+void update_cam1(struct Cam *cam);
 void handle_camera_events(
     GLFWwindow *window, double elapsed_seconds, struct Cam *cam);
