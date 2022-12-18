@@ -21,5 +21,6 @@ typedef struct _test_suite
 } test_suite;
 
 void register_data_structure_tests(slice *tests_suites);
+void register_obj3d_tests(slice *tests_suites);
 
 #endif

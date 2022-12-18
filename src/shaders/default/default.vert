@@ -26,9 +26,9 @@ void main() {
     // colorInterp = RED;
     // colorInterp = vec4(position, 1.0f);
     // colorInterp = vec4(mix(vec3(0, 0, 0), normal, 1), 1.0f);
-    // colorInterp = vec4(uv.xxx, 1.0f);
+    colorInterp = vec4(uv.x, uv.y, 0.0f, 1.0f);
     // colorInterp = vec4(normal, 1.0f);
-    colorInterp = vec4(0.6f, 0.6f, 0.6f, 2.0f);
+    // colorInterp = vec4(0.6f, 0.6f, 0.6f, 2.0f);
     uvInterp = uv;
     timInterp = time;
     normalInterp = normal;

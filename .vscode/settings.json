@@ -16,13 +16,13 @@
         "stdio.h": "c",
         "stdlib.h": "c",
         "string.h": "c",
-        "test_obj3d.c": "c",
         "types.h": "c",
         "uv.h": "c",
         "array": "c",
         "string": "c",
         "string_view": "c",
         "typeinfo": "c",
-        "tests.h": "c"
+        "tests.h": "c",
+        "linmath.h": "c"
     }
 }

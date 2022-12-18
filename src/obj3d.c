@@ -106,6 +106,97 @@ void handle_uv_line(slice *uv_data, char *line)
     parse_uv_line(uv_data, line + 2);
 }
 
+void sscanf_face(char *line, size_t len, size_t vertex_count, size_t3 data[])
+{
+    char string_buffer[256];
+    char *cursor = line, *end = NULL;
+    for (size_t i = 0; i < vertex_count; i++)
+    {
+        char *end = strchr(cursor, ' ');
+        if (end == NULL)
+        {
+            end = line + len;
+        }
+
+        memcpy(string_buffer, cursor, end - cursor);
+        string_buffer[end - cursor] = '\0';
+
+        if (sscanf(string_buffer, "%llu/%llu/%llu",
+                   &data[i][FACE_VERTS], &data[i][FACE_UVS], &data[i][FACE_NORMALS]) != 3)
+        {
+            data[i][FACE_NORMALS] = 0;
+            if (sscanf(string_buffer, "%llu/%llu/", &data[i][FACE_VERTS], &data[i][FACE_UVS]) != 2)
+            {
+                data[i][FACE_UVS] = 0;
+                if (sscanf(string_buffer, "%llu//%llu", &data[i][FACE_VERTS], &data[i][FACE_NORMALS]) != 2)
+                {
+                    sscanf(string_buffer, "%llu//", &data[i][FACE_VERTS]);
+                }
+            }
+        }
+
+        cursor = end + 1;
+    }
+}
+
+void parse_face_line(slice *element_data, char *line)
+{
+    int len = strlen(line);
+    int vertex_count = 0;
+
+    for (size_t i = 0; i < len; i++)
+    {
+        vertex_count += line[i] == ' ';
+    }
+    vertex_count += 1;
+
+    size_t3 data[vertex_count];
+    sscanf_face(line, len, vertex_count, data);
+
+    faces_to_elements(element_data, vertex_count, data);
+}
+
+void faces_to_elements(slice *elements, size_t n, size_t3 face_data[])
+{
+    int iters = n - 2;
+
+    for (int x = 0; x < n; x++)
+    {
+        face_data[x][FACE_VERTS] = face_data[x][FACE_VERTS] - 1;
+        face_data[x][FACE_UVS] = face_data[x][FACE_UVS] - 1;
+        face_data[x][FACE_NORMALS] = face_data[x][FACE_NORMALS] - 1;
+    }
+
+    if (iters <= 0)
+    {
+
+        extend_slice(elements, COUNT_FACE_METADATA, face_data[0]);
+        extend_slice(elements, COUNT_FACE_METADATA, face_data[1]);
+        extend_slice(elements, COUNT_FACE_METADATA, face_data[2]);
+        return;
+    }
+
+    for (int x = 0; x < iters; x++)
+    {
+        if (x == 0)
+        {
+            extend_slice(elements, COUNT_FACE_METADATA, face_data[0]);
+            extend_slice(elements, COUNT_FACE_METADATA, face_data[1]);
+            extend_slice(elements, COUNT_FACE_METADATA, face_data[2]);
+        }
+        else
+        {
+            int offset = x + 1;
+
+            extend_slice(elements, COUNT_FACE_METADATA, face_data[0]);
+            extend_slice(elements, COUNT_FACE_METADATA, face_data[offset]);
+            extend_slice(elements, COUNT_FACE_METADATA, face_data[offset + 1]);
+        }
+    }
+
+    return;
+}
+
 void handle_face_line(slice *element_data, char *line)
 {
 
@@ -117,169 +208,26 @@ void handle_face_line(slice *element_data, char *line)
     parse_face_line(element_data, line + 2);
 }
 
-void parse_face_line(slice *element_data, char *line)
-{
-
-    int num = -1;
-
-    bool no_slashes = strchr(line, '/') == NULL;
-
-    size_t face_data[256];
-    size_t count = 0;
-
-    char num_buff[256] = {0}; // 32 chars + terminator */
-    int len = strlen(line);
-
-    int i = 0;
-    int start = 0;
-    int end = 0;
-    bool reading = false;
-    char *last_seen = NULL;
-    for (i = 0; i < len; i++)
-    {
-        char ch = line[i];
-        if (ch != 0x20 && ch != 0x2f)
-        {
-            last_seen = &line[i];
-            if (i == 0 || line[i - 1] == 0x20 || line[i - 1] == 0x2f)
-            {
-                start = i;
-                reading = true;
-            }
-        }
-        else if (ch == 0x20)
-        {
-            if (!reading)
-            {
-                if (last_seen != NULL && *last_seen == 0x2f)
-                {
-                    face_data[count++] = 0;
-                }
-                continue;
-            }
-
-            end = i;
-            memset(num_buff, 0, sizeof(num_buff));
-            strncpy(num_buff, line + start, end - start);
-            num = atoi(num_buff);
-            face_data[count++] = num;
-            if (no_slashes)
-            {
-                face_data[count++] = 0;
-                face_data[count++] = 0;
-            }
-
-            reading = false;
-        }
-        else if (ch == 0x2f)
-        {
-            last_seen = &line[i];
-            if (!reading)
-            {
-                face_data[count++] = 0;
-                continue;
-            }
-            end = i;
-            memset(num_buff, 0, sizeof(num_buff));
-            strncpy(num_buff, line + start, end - start);
-            num = atoi(num_buff);
-            face_data[count++] = num;
-
-            reading = false;
-        }
-    }
-
-    if (last_seen != NULL && *last_seen == 0x2f)
-    {
-        face_data[count++] = 0;
-    }
-    else if (reading)
-    {
-        end = len;
-        memset(num_buff, 0, sizeof(num_buff));
-        strncpy(num_buff, line + start, end - start);
-        num = atoi(num_buff);
-        face_data[count++] = num;
-        if (no_slashes)
-        {
-            face_data[count++] = 0;
-            face_data[count++] = 0;
-        }
-        reading = false;
-    }
-
-    faces_to_elements(element_data, count, face_data);
-}
-
-void faces_to_elements(slice *elements, size_t n, size_t face_data[])
-{
-    int face_buffer[256];
-    for (int x = 0; x < n; x += 3)
-    {
-        int step = (n - (n - x)) / 3;
-        face_buffer[step] = face_data[x] - 1;
-        // printf("line_idx: %d, vert_idx: %d\n", step, face_data[x]);
-    }
-    // printf("count: %d\n", (n / 3));
-
-    int iters = (n / 3) - 2;
-
-    if (iters <= 0)
-    {
-        append_slice(elements, &face_buffer[0]);
-        append_slice(elements, &face_buffer[1]);
-        append_slice(elements, &face_buffer[2]);
-        return;
-    }
-
-    for (int x = 0; x < iters; x++)
-    {
-        if (x == 0)
-        {
-            append_slice(elements, &face_buffer[0]);
-            append_slice(elements, &face_buffer[1]);
-            append_slice(elements, &face_buffer[2]);
-            // printf("%d, %d, %d\n",
-            //        face_buffer[0],
-            //        face_buffer[1],
-            //        face_buffer[2]);
-        }
-        else
-        {
-            int offset = x + 1;
-            append_slice(elements, &face_buffer[0]);
-            append_slice(elements, &face_buffer[offset]);
-            append_slice(elements, &face_buffer[offset + 1]);
-            // printf("%d, %d, %d\n",
-            //        face_buffer[offset],
-            //        face_buffer[offset + 1],
-            //        face_buffer[0]);
-        }
-    }
-
-    return;
-}
-
 void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS], float bounds[6])
 {
     slice vertices_index_slice = new_slice(sizeof(float));
     slice normals_slice = new_slice(sizeof(float));
-    slice uv_slice = new_slice(sizeof(float));
-    slice elements_slice = new_slice(sizeof(int));
+    slice uv_index_slice = new_slice(sizeof(float));
+    slice elements_slice = new_slice(sizeof(size_t));
 
     line_callback_t *callbacks[COUNT_BUFFERS];
     callbacks[VERTS] = &handle_vertex_line;
 
-    // callbacks[UVS] = &handle_uv_line;
+    callbacks[UVS] = &handle_uv_line;
     // callbacks[NORMALS] = &handle_normal_line;
-    callbacks[UVS] = &handle_noop;
+    // callbacks[UVS] = &handle_noop;
     callbacks[NORMALS] = &handle_noop;
     callbacks[COLORS] = &handle_noop;
 
     callbacks[ELEMENTS] = &handle_face_line;
 
     buffers[VERTS] = vertices_index_slice;
-    buffers[UVS] = uv_slice;
+    buffers[UVS] = uv_index_slice;
     buffers[NORMALS] = normals_slice;
     buffers[COLORS] = new_slice(sizeof(float));
     buffers[ELEMENTS] = elements_slice;
@@ -294,9 +242,12 @@ void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS], floa
     line_reader(obj_file_name, callbacks, buff_ptr);
 
     vertices_index_slice = buffers[VERTS];
+    uv_index_slice = buffers[UVS];
     printf("Found %d vertices\n", vertices_index_slice.len);
+    printf("Found %d uvs in %s\n", uv_index_slice.len, obj_file_name);
+
     vec3 *vertices_index = (vec3 *)vertices_index_slice.data;
-    int num_verts = vertices_index_slice.len / 3;
+    vec2 *uv_index = (vec2 *)uv_index_slice.data;
 
     bounds[0] = vertices_index[0][0];
     bounds[1] = vertices_index[0][0];
@@ -305,6 +256,7 @@ void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS], floa
     bounds[4] = vertices_index[0][2];
     bounds[5] = vertices_index[0][2];
 
+    int num_verts = vertices_index_slice.len / 3;
     for (size_t i = 1; i < num_verts; i++)
     {
         for (int y = 0; y < 3; y++)
@@ -329,20 +281,36 @@ void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS], floa
 
     // TODO: expand verts, normals, and uvs, then free everything not leaving
     slice vertices_slice = new_slice(sizeof(vec3));
-    int *elements = (int *)buffers[ELEMENTS].data;
-    for (int x = 0; x < buffers[ELEMENTS].len; x += 3)
+    size_t *elements = (size_t *)buffers[ELEMENTS].data;
+    for (int x = 0; x < buffers[ELEMENTS].len; x += 9)
     {
-        float *p1 = vertices_index[elements[x]];
-        float *p2 = vertices_index[elements[x + 1]];
-        float *p3 = vertices_index[elements[x + 2]];
+        float *p1 = vertices_index[elements[x + FACE_VERTS]];
+        float *p2 = vertices_index[elements[x + 3 + FACE_VERTS]];
+        float *p3 = vertices_index[elements[x + 6 + FACE_VERTS]];
         append_slice(&vertices_slice, p1);
         append_slice(&vertices_slice, p2);
         append_slice(&vertices_slice, p3);
     }
 
     buffers[VERTS] = vertices_slice;
-
     free(vertices_index_slice.data);
+
+    slice uv_slice = new_slice(sizeof(vec2));
+    if (uv_index_slice.len)
+    {
+        for (int x = 0; x < buffers[ELEMENTS].len; x += 9)
+        {
+            float *p1 = uv_index[elements[x + FACE_UVS]];
+            float *p2 = uv_index[elements[x + 3 + FACE_UVS]];
+            float *p3 = uv_index[elements[x + 6 + FACE_UVS]];
+            append_slice(&uv_slice, p1);
+            append_slice(&uv_slice, p2);
+            append_slice(&uv_slice, p3);
+        }
+    }
+
+    buffers[UVS] = uv_slice;
+    free(uv_index_slice.data);
 
     // printf("Found %d elements\n", buffers[ELEMENTS].len);
     // for (size_t i = 0; i < elements_slice.len; i += 3)

@@ -136,18 +136,6 @@ void calculate_normals_per_face(slice buffer_slices[COUNT_BUFFERS])
 //     return;
 // }
 
-void inject_uv(slice buffer_slices[COUNT_BUFFERS], float *uvs)
-{
-    if (buffer_slices[UVS].data != NULL)
-    {
-        free(buffer_slices[UVS].data);
-    }
-    buffer_slices[UVS].data = (void *)uvs;
-    buffer_slices[UVS].size = sizeof(float);
-    buffer_slices[UVS].cap = sizeof(s_uv);
-    buffer_slices[UVS].len = buffer_slices[UVS].cap / buffer_slices[UVS].size;
-}
-
 void init_obj_model(mat4x4 m, float bounds[6], int x, int count)
 {
     mat4x4 S, T;
@@ -466,14 +454,6 @@ int main(void)
             calculate_normals_per_face(objects[x].buffer_slices);
         }
 
-        if (x == 0)
-        {
-            inject_uv(objects[x].buffer_slices, s_uv);
-        }
-        if (x == 3)
-        {
-            inject_uv(objects[x].buffer_slices, ttop_uv);
-        }
         init_obj_model(objects[x].model, bounds, x, COUNT);
 
         // send geometry to OpenGL

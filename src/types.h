@@ -1,8 +1,7 @@
-
-
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <glad/gl.h>
 
