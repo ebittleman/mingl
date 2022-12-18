@@ -97,6 +97,11 @@ void reset_slice(slice *s, int size, int len, int cap)
     memset(s->data, 0, s->cap * s->size);
 }
 
+void debug_vec3(vec3 v)
+{
+    printf("x: %f, y: %f, z: %f\n", v[0], v[1], v[2]);
+}
+
 void debug_mat(mat4x4 m)
 {
     printf("%f %f %f %f\n", m[0][0], m[0][1], m[0][2], m[0][3]);

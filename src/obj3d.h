@@ -26,6 +26,8 @@ int line_reader(
 
 void faces_to_elements(slice *elements, size_t n, size_t3 face_data[]);
 
+void calculate_normal_per_vertex(slice buffer_slices[COUNT_BUFFERS]);
+
 void load_obj_file(
     const char *obj_file_name,
     slice buffers[COUNT_BUFFERS],

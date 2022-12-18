@@ -96,46 +96,6 @@ void calculate_normals_per_face(slice buffer_slices[COUNT_BUFFERS])
     return;
 }
 
-// requires `glDrawElements`
-// void calculate_normal_per_vertex(slice buffer_slices[COUNT_BUFFERS])
-// {
-
-//     reset_slice(&buffer_slices[NORMALS],
-//                 buffer_slices[VERTS].size,
-//                 buffer_slices[VERTS].len,
-//                 buffer_slices[VERTS].cap);
-
-//     int *elements = (int *)buffer_slices[ELEMENTS].data;
-//     vec3 *vertices = (vec3 *)buffer_slices[VERTS].data;
-//     vec3 *normals = (vec3 *)buffer_slices[NORMALS].data;
-
-//     vec3 normal, a, b;
-//     for (int x = 0; x < buffer_slices[ELEMENTS].len; x += 3)
-//     {
-//         float *p1 = vertices[elements[x]];
-//         float *p2 = vertices[elements[x + 1]];
-//         float *p3 = vertices[elements[x + 2]];
-
-//         vec3_sub(a, p2, p1);
-//         vec3_sub(b, p3, p1);
-//         vec3_mul_cross(normal, a, b);
-
-//         float *n1 = normals[elements[x]];
-//         float *n2 = normals[elements[x + 1]];
-//         float *n3 = normals[elements[x + 2]];
-
-//         vec3_add(n1, n1, normal);
-//         vec3_add(n2, n2, normal);
-//         vec3_add(n3, n3, normal);
-//     }
-
-//     for (int x = 0; x < buffer_slices[NORMALS].len / 3; x++)
-//     {
-//         vec3_norm(normals[x], normals[x]);
-//     }
-//     return;
-// }
-
 void init_obj_model(mat4x4 m, float bounds[6], int x, int count)
 {
     mat4x4 S, T;
@@ -163,12 +123,7 @@ void init_obj_model(mat4x4 m, float bounds[6], int x, int count)
     mat4x4_scale_aniso(S, S, scale, scale, scale);
     mat4x4_mul(m, m, S);
 
-    debug_mat(m);
-
-    // printf("%f %f %f %f\n", m[0][0], m[0][1], m[0][2], m[0][3]);
-    // printf("%f %f %f %f\n", m[1][0], m[1][1], m[1][2], m[1][3]);
-    // printf("%f %f %f %f\n", m[2][0], m[2][1], m[2][2], m[2][3]);
-    // printf("%f %f %f %f\n", m[3][0], m[3][1], m[3][2], m[3][3]);
+    // debug_mat(m);
 }
 
 void calculate_model_position(mat4x4 m, mat4x4 obj, float time)
@@ -451,6 +406,7 @@ int main(void)
 
         if (!objects[x].buffer_slices[NORMALS].len)
         {
+            printf("Calculating normals for: %s\n", filename);
             calculate_normals_per_face(objects[x].buffer_slices);
         }
 

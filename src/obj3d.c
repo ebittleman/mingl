@@ -211,7 +211,7 @@ void handle_face_line(slice *element_data, char *line)
 void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS], float bounds[6])
 {
     slice vertices_index_slice = new_slice(sizeof(float));
-    slice normals_slice = new_slice(sizeof(float));
+    slice normals_index_slice = new_slice(sizeof(float));
     slice uv_index_slice = new_slice(sizeof(float));
     slice elements_slice = new_slice(sizeof(size_t));
 
@@ -219,16 +219,14 @@ void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS], floa
     callbacks[VERTS] = &handle_vertex_line;
 
     callbacks[UVS] = &handle_uv_line;
-    // callbacks[NORMALS] = &handle_normal_line;
-    // callbacks[UVS] = &handle_noop;
-    callbacks[NORMALS] = &handle_noop;
+    callbacks[NORMALS] = &handle_normal_line;
     callbacks[COLORS] = &handle_noop;
 
     callbacks[ELEMENTS] = &handle_face_line;
 
     buffers[VERTS] = vertices_index_slice;
     buffers[UVS] = uv_index_slice;
-    buffers[NORMALS] = normals_slice;
+    buffers[NORMALS] = normals_index_slice;
     buffers[COLORS] = new_slice(sizeof(float));
     buffers[ELEMENTS] = elements_slice;
 
@@ -242,13 +240,17 @@ void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS], floa
     line_reader(obj_file_name, callbacks, buff_ptr);
 
     vertices_index_slice = buffers[VERTS];
-    uv_index_slice = buffers[UVS];
-    printf("Found %d vertices\n", vertices_index_slice.len);
-    printf("Found %d uvs in %s\n", uv_index_slice.len, obj_file_name);
+    // uv_index_slice = buffers[UVS];
+    // normals_index_slice = buffers[NORMALS];
 
-    vec3 *vertices_index = (vec3 *)vertices_index_slice.data;
-    vec2 *uv_index = (vec2 *)uv_index_slice.data;
+    if (buffers[NORMALS].len < 1)
+    {
+        calculate_normal_per_vertex(buffers);
+    }
 
+    size_t *elements = (size_t *)buffers[ELEMENTS].data;
+
+    vec3 *vertices_index = (vec3 *)buffers[VERTS].data;
     bounds[0] = vertices_index[0][0];
     bounds[1] = vertices_index[0][0];
     bounds[2] = vertices_index[0][1];
@@ -256,7 +258,7 @@ void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS], floa
     bounds[4] = vertices_index[0][2];
     bounds[5] = vertices_index[0][2];
 
-    int num_verts = vertices_index_slice.len / 3;
+    int num_verts = buffers[VERTS].len / 3;
     for (size_t i = 1; i < num_verts; i++)
     {
         for (int y = 0; y < 3; y++)
@@ -271,17 +273,14 @@ void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS], floa
                 bounds[offset + 1] = vertices_index[i][y];
             }
         }
-
-        // printf("x: %f, y: %f, z: %f\n", verts[0], verts[1], verts[2]);
     }
 
-    printf("min x: %f, max x: %f\n", bounds[0], bounds[1]);
-    printf("min y: %f, max y: %f\n", bounds[2], bounds[3]);
-    printf("min z: %f, max z: %f\n", bounds[4], bounds[5]);
+    // printf("min x: %f, max x: %f\n", bounds[0], bounds[1]);
+    // printf("min y: %f, max y: %f\n", bounds[2], bounds[3]);
+    // printf("min z: %f, max z: %f\n", bounds[4], bounds[5]);
 
     // TODO: expand verts, normals, and uvs, then free everything not leaving
     slice vertices_slice = new_slice(sizeof(vec3));
-    size_t *elements = (size_t *)buffers[ELEMENTS].data;
     for (int x = 0; x < buffers[ELEMENTS].len; x += 9)
     {
         float *p1 = vertices_index[elements[x + FACE_VERTS]];
@@ -291,12 +290,12 @@ void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS], floa
         append_slice(&vertices_slice, p2);
         append_slice(&vertices_slice, p3);
     }
-
+    free(buffers[VERTS].data);
     buffers[VERTS] = vertices_slice;
-    free(vertices_index_slice.data);
 
     slice uv_slice = new_slice(sizeof(vec2));
-    if (uv_index_slice.len)
+    vec2 *uv_index = (vec2 *)buffers[UVS].data;
+    if (buffers[UVS].len)
     {
         for (int x = 0; x < buffers[ELEMENTS].len; x += 9)
         {
@@ -308,9 +307,22 @@ void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS], floa
             append_slice(&uv_slice, p3);
         }
     }
-
+    free(buffers[UVS].data);
     buffers[UVS] = uv_slice;
-    free(uv_index_slice.data);
+
+    slice normals_slice = new_slice(sizeof(vec3));
+    vec3 *normal_index = (vec3 *)buffers[NORMALS].data;
+    for (int x = 0; x < buffers[ELEMENTS].len; x += 9)
+    {
+        float *p1 = normal_index[elements[x + FACE_NORMALS]];
+        float *p2 = normal_index[elements[x + 3 + FACE_NORMALS]];
+        float *p3 = normal_index[elements[x + 6 + FACE_NORMALS]];
+        append_slice(&normals_slice, p1);
+        append_slice(&normals_slice, p2);
+        append_slice(&normals_slice, p3);
+    }
+    free(buffers[NORMALS].data);
+    buffers[NORMALS] = normals_slice;
 
     // printf("Found %d elements\n", buffers[ELEMENTS].len);
     // for (size_t i = 0; i < elements_slice.len; i += 3)
@@ -321,5 +333,48 @@ void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS], floa
     //            elements[i + 2]);
     // }
 
+    return;
+}
+
+void calculate_normal_per_vertex(slice buffer_slices[COUNT_BUFFERS])
+{
+
+    reset_slice(&buffer_slices[NORMALS],
+                buffer_slices[VERTS].size,
+                buffer_slices[VERTS].len,
+                buffer_slices[VERTS].cap);
+
+    size_t *elements = (size_t *)buffer_slices[ELEMENTS].data;
+    vec3 *vertices = (vec3 *)buffer_slices[VERTS].data;
+    vec3 *normals = (vec3 *)buffer_slices[NORMALS].data;
+
+    vec3 normal, a, b;
+    for (int x = 0; x < buffer_slices[ELEMENTS].len; x += 9)
+    {
+        float *p1 = vertices[elements[x + FACE_VERTS]];
+        float *p2 = vertices[elements[x + 3 + FACE_VERTS]];
+        float *p3 = vertices[elements[x + 6 + FACE_VERTS]];
+
+        vec3_sub(a, p2, p1);
+        vec3_sub(b, p3, p1);
+        vec3_mul_cross(normal, a, b);
+
+        float *n1 = normals[elements[x + FACE_VERTS]];
+        float *n2 = normals[elements[x + 3 + FACE_VERTS]];
+        float *n3 = normals[elements[x + 6 + FACE_VERTS]];
+
+        vec3_add(n1, n1, normal);
+        vec3_add(n2, n2, normal);
+        vec3_add(n3, n3, normal);
+
+        elements[x + FACE_NORMALS] = elements[x + FACE_VERTS];
+        elements[x + 3 + FACE_NORMALS] = elements[x + 3 + FACE_VERTS];
+        elements[x + 6 + FACE_NORMALS] = elements[x + 6 + FACE_VERTS];
+    }
+
+    for (int x = 0; x < buffer_slices[NORMALS].len / 3; x++)
+    {
+        vec3_norm(normals[x], normals[x]);
+    }
     return;
 }
