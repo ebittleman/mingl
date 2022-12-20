@@ -19,7 +19,7 @@ vec3 lightColor = vec3(1.0f);
 vec3 lightPos = vec3(-2.5f, 0.0f, 15.0f);
 
 float ambientStrength = 0.1;
-float specularStrength = 0.4;
+float specularStrength = 0.5;
 
 void main() {
 
@@ -32,7 +32,7 @@ void main() {
 
     vec3 viewDir = normalize(cam_pos - fragPosInterp);
     vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 8);
     vec3 specular = specularStrength * spec * lightColor;
     vec3 result = (ambient + diffuse + specular);
     outColor = vec4(result * colorInterp.rgb, 1.0f);
