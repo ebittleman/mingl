@@ -17,13 +17,15 @@
 #include "types.h"
 
 #define TAU 6.28318530718
+#define COUNT 6
 
 typedef const char *string;
 
 const char *default_vert_file = "src/shaders/default/default.vert";
 const char *default_frag_file = "src/shaders/default/default.frag";
 
-#define COUNT 6
+Program program;
+object objects[COUNT];
 
 string ASSET_DIR = "assets";
 static slice strings = {0, 0, sizeof(char), NULL};
@@ -124,49 +126,6 @@ void init_obj_model(mat4x4 m, float bounds[6], int x, int count)
     // debug_mat(m);
 }
 
-void calculate_model_position(mat4x4 m, mat4x4 obj, double time)
-{
-    mat4x4_dup(m, obj);
-    // mat4x4_identity(m);
-    // mat4x4_scale(m, m, 1.0f / 12.0f);
-    // mat4x4_translate_in_place(m, .1f, .2f, .5f);
-
-    // mat4x4_rotate_X(m, m, time * TAU * .1);
-    mat4x4_rotate_Y(m, m, time * TAU * .1);
-    // mat4x4_rotate_Z(m, m, time * TAU * .1);
-
-    // mat4x4_mul(m, m, obj);
-    // debug_mat(m);
-}
-
-bool handle_events(GLFWwindow *window, Program *program)
-{
-    static bool reload_key_pressed = false;
-    bool down = glfwGetKey(window, GLFW_KEY_R);
-    if (down && !reload_key_pressed)
-    {
-        reload_key_pressed = true;
-    }
-    else if (!down && reload_key_pressed)
-    {
-        reload_key_pressed = false;
-        reload_shader_program_from_files(
-            &program->id,
-            program->vert_file,
-            program->frag_file);
-        set_uniforms_and_inputs(
-            program->id, program->uniforms,
-            program->input_locations);
-        printf("reloaded shaders\n");
-        return true;
-    }
-
-    return false;
-}
-
-Program program;
-object objects[COUNT];
-
 int init(GLFWwindow *window)
 {
     load_program(&program, default_vert_file, default_frag_file);
@@ -209,6 +168,46 @@ int init(GLFWwindow *window)
     glEnable(GL_DEPTH_TEST);
 
     return 0;
+}
+
+bool handle_events(GLFWwindow *window, Program *program)
+{
+    static bool reload_key_pressed = false;
+    bool down = glfwGetKey(window, GLFW_KEY_R);
+    if (down && !reload_key_pressed)
+    {
+        reload_key_pressed = true;
+    }
+    else if (!down && reload_key_pressed)
+    {
+        reload_key_pressed = false;
+        reload_shader_program_from_files(
+            &program->id,
+            program->vert_file,
+            program->frag_file);
+        set_uniforms_and_inputs(
+            program->id, program->uniforms,
+            program->input_locations);
+        printf("reloaded shaders\n");
+        return true;
+    }
+
+    return false;
+}
+
+void calculate_model_position(mat4x4 m, mat4x4 obj, double time)
+{
+    mat4x4_dup(m, obj);
+    // mat4x4_identity(m);
+    // mat4x4_scale(m, m, 1.0f / 12.0f);
+    // mat4x4_translate_in_place(m, .1f, .2f, .5f);
+
+    // mat4x4_rotate_X(m, m, time * TAU * .1);
+    mat4x4_rotate_Y(m, m, time * TAU * .1);
+    // mat4x4_rotate_Z(m, m, time * TAU * .1);
+
+    // mat4x4_mul(m, m, obj);
+    // debug_mat(m);
 }
 
 void update(GLFWwindow *window, double time, double dt)

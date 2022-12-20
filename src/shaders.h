@@ -1,4 +1,4 @@
-#include <GL/gl.h>
+#include <glad/gl.h>
 #include "types.h"
 
 GLuint create_shader_program_from_strings(const char *vertex_shader_str, const char *fragment_shader_str);

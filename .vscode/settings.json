@@ -24,7 +24,8 @@
         "typeinfo": "c",
         "tests.h": "c",
         "linmath.h": "c",
-        "concepts": "c"
+        "concepts": "c",
+        "glext.h": "c"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",

@@ -77,7 +77,7 @@ void handle_vertex_line(slice *vertex_data, char *line)
 {
 
     char *pre = "v ";
-    if (!strncmp(pre, line, strlen(pre)) == 0)
+    if (strncmp(pre, line, strlen(pre)) != 0)
     {
         return;
     }
@@ -88,7 +88,7 @@ void handle_normal_line(slice *normal_data, char *line)
 {
 
     char *pre = "vn ";
-    if (!strncmp(pre, line, strlen(pre)) == 0)
+    if (strncmp(pre, line, strlen(pre)) != 0)
     {
         return;
     }
@@ -99,7 +99,7 @@ void handle_uv_line(slice *uv_data, char *line)
 {
 
     char *pre = "vt ";
-    if (!strncmp(pre, line, strlen(pre)) == 0)
+    if (strncmp(pre, line, strlen(pre)) != 0)
     {
         return;
     }
@@ -201,7 +201,7 @@ void handle_face_line(slice *element_data, char *line)
 {
 
     char *pre = "f ";
-    if (!strncmp(pre, line, strlen(pre)) == 0)
+    if (strncmp(pre, line, strlen(pre)) != 0)
     {
         return;
     }

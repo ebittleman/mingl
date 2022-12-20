@@ -1,7 +1,5 @@
 #include <stddef.h>
 
-#include <callback.h>
-
 #include "types.h"
 
 typedef void(line_callback_t)(slice *, char *);

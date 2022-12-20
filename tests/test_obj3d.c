@@ -45,7 +45,7 @@ int test_sscanf_face(char *error_buffer)
         for (size_t i = 0; i < vertex_count; i++)
         {
             size_t *data = actual_data[i];
-            printf("%d, %d, %d\n", data[0], data[1], data[2]);
+            printf("%llu, %llu, %llu\n", data[0], data[1], data[2]);
         }
 
         return 1;
