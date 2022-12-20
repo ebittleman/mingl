@@ -59,19 +59,19 @@ int util_cmp_slice(char *error_buffer, slice actual,
 
     if (actual.len != expected_len)
     {
-        sprintf(error_buffer, "len error. Expected: %d, Got: %d", expected_len, actual.len);
+        sprintf(error_buffer, "len error. Expected: %llu, Got: %llu", expected_len, actual.len);
         return 1;
     }
 
     if (actual.cap != expected_cap)
     {
-        sprintf(error_buffer, "cap error. Expected: %d, Got: %d", expected_cap, actual.cap);
+        sprintf(error_buffer, "cap error. Expected: %llu, Got: %llu", expected_cap, actual.cap);
         return 1;
     }
 
     if (actual.size != expected_size)
     {
-        sprintf(error_buffer, "size error. Expected: %d, Got: %d", expected_size, actual.size);
+        sprintf(error_buffer, "size error. Expected: %llu, Got: %llu", expected_size, actual.size);
         return 1;
     }
 
@@ -92,19 +92,19 @@ int test_new_slice(char *error_buffer)
 
     if (actual.len != expected.len)
     {
-        sprintf(error_buffer, "len error. Expected: %d, Got: %d", expected.len, actual.len);
+        sprintf(error_buffer, "len error. Expected: %llu, Got: %llu", expected.len, actual.len);
         return 1;
     }
 
     if (actual.cap != expected.cap)
     {
-        sprintf(error_buffer, "cap error. Expected: %d, Got: %d", expected.cap, actual.cap);
+        sprintf(error_buffer, "cap error. Expected: %llu, Got: %llu", expected.cap, actual.cap);
         return 1;
     }
 
     if (actual.size != expected.size)
     {
-        sprintf(error_buffer, "size error. Expected: %d, Got: %d", expected.size, actual.size);
+        sprintf(error_buffer, "size error. Expected: %llu, Got: %llu", expected.size, actual.size);
         return 1;
     }
 

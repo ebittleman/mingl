@@ -5,6 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "lldb",
+            "request": "launch",
+            "name": "LLDB Launch",
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
             "name": "(Windows) Launch - CMake",
             "type": "cppvsdbg",
             "request": "launch",

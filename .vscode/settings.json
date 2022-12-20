@@ -23,6 +23,11 @@
         "string_view": "c",
         "typeinfo": "c",
         "tests.h": "c",
-        "linmath.h": "c"
-    }
+        "linmath.h": "c",
+        "concepts": "c"
+    },
+    "lldb.displayFormat": "auto",
+    "lldb.showDisassembly": "auto",
+    "lldb.dereferencePointers": true,
+    "lldb.consoleMode": "commands"
 }
