@@ -61,6 +61,7 @@ typedef struct _object
     slice buffer_slices[COUNT_BUFFERS];
     bool buffer_disabled[COUNT_BUFFERS];
     size_t element_count;
+    mat4x4 init_model;
     mat4x4 model;
 } object;
 

@@ -23,14 +23,10 @@ out float timInterp;
 
 void main() {
     gl_Position = mvp_matrix * vec4(position, 1.0);
-    // colorInterp = RED;
-    // colorInterp = vec4(position, 1.0f);
-    // colorInterp = vec4(mix(vec3(0, 0, 0), normal, 1), 1.0f);
-    // colorInterp = vec4(uv.x, uv.y, 0.0f, 1.0f);
-    // colorInterp = vec4(normal, 1.0f);
+
     colorInterp = vec4(0.6f, 0.6f, 0.6f, 2.0f);
     uvInterp = uv;
     timInterp = time;
-    normalInterp = normal;
+    normalInterp = (view_matrix * model_matrix * vec4(normal, 0.0f)).xyz;
     fragPosInterp = vec3(model_matrix * vec4(position, 1.0));
 }

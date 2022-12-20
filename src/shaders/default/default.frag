@@ -6,7 +6,7 @@ in vec4 colorInterp;
 in vec2 uvInterp;
 in vec3 fragPosInterp;
 in vec3 normalInterp;
-in float timInterp;
+in float timeInterp;
 
 out vec4 outColor;
 
@@ -42,7 +42,7 @@ void main() {
     // outColor = vec4(mix(uvInterp.xxx, colorInterp.xyz, 1.0), 1.0f);
 
     // vec3 xOffest = cos(colorInterp.yyy) * 2;
-    // vec3 outc = cos(colorInterp.xxx * TAU * 2 + timInterp * 10) * .5 + .5;
+    // vec3 outc = cos(colorInterp.xxx * TAU * 2 + timeInterp * 10) * .5 + .5;
     // outColor = vec4(outc.x, outc.x + xOffest.x, outc.z, 1);
 
     // outColor = colorInterp;
