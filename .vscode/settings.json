@@ -25,10 +25,26 @@
         "tests.h": "c",
         "linmath.h": "c",
         "concepts": "c",
-        "glext.h": "c"
+        "glext.h": "c",
+        "__node_handle": "c",
+        "__hash_table": "c",
+        "__split_buffer": "c",
+        "__tree": "c",
+        "deque": "c",
+        "initializer_list": "c",
+        "list": "c",
+        "map": "c",
+        "set": "c",
+        "stack": "c",
+        "unordered_map": "c",
+        "unordered_set": "c",
+        "vector": "c"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",
     "lldb.dereferencePointers": true,
-    "lldb.consoleMode": "commands"
+    "lldb.consoleMode": "commands",
+    "cSpell.words": [
+        "Lsizei"
+    ]
 }

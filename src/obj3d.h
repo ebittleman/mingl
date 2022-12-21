@@ -1,6 +1,8 @@
 #include <stddef.h>
 
 #include "types.h"
+#include "linmath.h"
+#include "entities.h"
 
 typedef void(line_callback_t)(slice *, char *);
 typedef size_t size_t3[3];

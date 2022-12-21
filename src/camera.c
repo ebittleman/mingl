@@ -1,11 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-
 #include "camera.h"
-#include "types.h"
 
 struct Cam new_cam()
 {

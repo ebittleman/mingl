@@ -6,6 +6,7 @@
 #include "tests.h"
 
 register_func_t *registrations[] = {
+    register_entities_tests,
     register_obj3d_tests,
     register_data_structure_tests,
 };

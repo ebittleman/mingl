@@ -202,9 +202,9 @@ void calculate_model_position(mat4x4 m, mat4x4 obj, double time)
     // mat4x4_scale(m, m, 1.0f / 12.0f);
     // mat4x4_translate_in_place(m, .1f, .2f, .5f);
 
-    mat4x4_rotate_X(m, m, time * TAU * .1);
-    mat4x4_rotate_Y(m, m, time * TAU * .1);
-    mat4x4_rotate_Z(m, m, time * TAU * .1);
+    // mat4x4_rotate_X(m, m, time * TAU * .1);
+    // mat4x4_rotate_Y(m, m, time * TAU * .1);
+    // mat4x4_rotate_Z(m, m, time * TAU * .1);
 
     // mat4x4_mul(m, m, obj);
     // debug_mat(m);

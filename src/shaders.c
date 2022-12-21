@@ -3,10 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-#include <glad/gl.h>
-
 #include "shaders.h"
 
 // set a max limit on shader length to avoid dynamic memory allocation

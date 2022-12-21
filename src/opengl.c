@@ -2,15 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-#include <glad/gl.h>
-
-#include "camera.h"
-#include "types.h"
-#include "linmath.h"
 #include "opengl.h"
-#include "shaders.h"
 
 void calculate_projection_matrix(GLFWwindow *window, mat4x4 *p)
 {
@@ -165,16 +157,11 @@ void render_object(
     glUniformMatrix4fv(program.uniforms[U_MODEL], 1, GL_FALSE, (const GLfloat *)model);
     glUniformMatrix4fv(program.uniforms[U_VIEW], 1, GL_FALSE, (const GLfloat *)view);
     glUniformMatrix4fv(program.uniforms[U_PROJECTION], 1, GL_FALSE, (const GLfloat *)proj);
-
     glUniform3fv(program.uniforms[U_CAM_POS], 1, cam_pos);
-
     glUniform1f(program.uniforms[U_TIME], (float)time);
 
     glBindVertexArray(vertex_array);
     glDrawArrays(GL_TRIANGLES, 0, element_count);
-    // glDrawElements(
-    //     GL_TRIANGLES, element_count,
-    //     GL_UNSIGNED_INT, (void *)0);
     glBindVertexArray(0);
 }
 
