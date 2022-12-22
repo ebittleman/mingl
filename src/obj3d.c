@@ -7,7 +7,27 @@
 
 #include "obj3d.h"
 
-#define LINE_BUF_SIZE 1024
+#define LINE_BUF_SIZE 1024 * 64
+static char line_buffer[LINE_BUF_SIZE];
+
+char *trimString(char *str)
+{
+    char *end;
+
+    while (isspace((unsigned char)*str))
+        str++;
+
+    if (*str == 0)
+        return str;
+
+    end = str + strlen(str) - 1;
+    while (end > str && isspace((unsigned char)*end))
+        end--;
+
+    end[1] = '\0';
+
+    return str;
+}
 
 int line_reader(
     const char *filename,
@@ -16,7 +36,6 @@ int line_reader(
 {
     FILE *f = NULL;
     int result = -1;
-    char line_buffer[LINE_BUF_SIZE];
 
     f = fopen(filename, "r");
     if (f == NULL)
@@ -27,9 +46,11 @@ int line_reader(
         if (ferror(f))
             goto fail;
 
+        char *trimmed_line = trimString(line_buffer);
+
         for (size_t i = 0; i < COUNT_BUFFERS; i++)
         {
-            callbacks[i](buffers[i], line_buffer);
+            callbacks[i](buffers[i], trimmed_line);
         }
     }
 
@@ -206,128 +227,6 @@ void handle_face_line(slice *element_data, char *line)
     parse_face_line(element_data, line + 2);
 }
 
-void _load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS])
-{
-    line_callback_t *callbacks[COUNT_BUFFERS];
-
-    callbacks[VERTS] = &handle_vertex_line;
-    callbacks[UVS] = &handle_uv_line;
-    callbacks[NORMALS] = &handle_normal_line;
-    callbacks[ELEMENTS] = &handle_face_line;
-
-    slice v = new_slice(sizeof(float)), u = new_slice(sizeof(float)),
-          n = new_slice(sizeof(float)), e = new_slice(sizeof(size_t));
-
-    slice *buff_ptr[COUNT_BUFFERS];
-    buff_ptr[VERTS] = &v;
-    buff_ptr[UVS] = &u;
-    buff_ptr[NORMALS] = &n;
-    buff_ptr[ELEMENTS] = &e;
-
-    line_reader(obj_file_name, callbacks, buff_ptr);
-
-    // set output
-    buffers[VERTS] = *buff_ptr[VERTS];
-    buffers[UVS] = *buff_ptr[UVS];
-    buffers[NORMALS] = *buff_ptr[NORMALS];
-    buffers[ELEMENTS] = *buff_ptr[ELEMENTS];
-
-    if (buffers[NORMALS].len < 1)
-    {
-        calculate_normal_per_vertex(buffers);
-    }
-}
-
-void load_mesh(const char *obj_file_name, mesh *mesh)
-{
-    slice buffers[COUNT_BUFFERS];
-    _load_obj_file(obj_file_name, buffers);
-
-    size_t *elements = (size_t *)buffers[ELEMENTS].data;
-    vec3 *vertices_index = (vec3 *)buffers[VERTS].data;
-    vec3 *normal_index = (vec3 *)buffers[NORMALS].data;
-    vec2 *uv_index = (vec2 *)buffers[UVS].data;
-
-    vertex vert = {0};
-    uintptr_t position_offset = offsetof(vertex, position);
-    size_t position_size = sizeof(vert.position);
-
-    uintptr_t normal_offset = offsetof(vertex, normal);
-    size_t normal_size = sizeof(vert.normal);
-
-    uintptr_t uv_offset = offsetof(vertex, uv);
-    size_t uv_size = sizeof(vert.uv);
-
-    int num_verts = buffers[VERTS].len / 3;
-    for (size_t i = 1; i < num_verts; i++)
-    {
-        for (int y = 0; y < 3; y++)
-        {
-            int offset = y * 2;
-            if (vertices_index[i][y] < mesh->bounds[offset])
-            {
-                mesh->bounds[offset] = vertices_index[i][y];
-            }
-            else if (vertices_index[i][y] > mesh->bounds[offset + 1])
-            {
-                mesh->bounds[offset + 1] = vertices_index[i][y];
-            }
-        }
-    }
-
-    size_t vertices_len = buffers[ELEMENTS].len / 3;
-    size_t vertices_cap = vertices_len * sizeof(vertex);
-    slice vertices_slice = {
-        vertices_len,
-        vertices_cap,
-        sizeof(vertex),
-        malloc(vertices_cap)};
-    memset(vertices_slice.data, 0, vertices_cap);
-
-    int step;
-    vertex *vertices = (vertex *)vertices_slice.data;
-    for (int x = 0; x < buffers[ELEMENTS].len; x += 9)
-    {
-
-        step = x / 3;
-        memcpy(((void *)&vertices[0 + step]) + position_offset, vertices_index[elements[x + FACE_VERTS]], position_size);
-        memcpy(((void *)&vertices[1 + step]) + position_offset, vertices_index[elements[x + 3 + FACE_VERTS]], position_size);
-        memcpy(((void *)&vertices[2 + step]) + position_offset, vertices_index[elements[x + 6 + FACE_VERTS]], position_size);
-    }
-
-    if (buffers[NORMALS].len)
-    {
-        for (int x = 0; x < buffers[ELEMENTS].len; x += 9)
-        {
-            step = x / 3;
-            memcpy(((void *)&vertices[0 + step]) + normal_offset, normal_index[elements[x + FACE_NORMALS]], normal_size);
-            memcpy(((void *)&vertices[1 + step]) + normal_offset, normal_index[elements[x + 3 + FACE_NORMALS]], normal_size);
-            memcpy(((void *)&vertices[2 + step]) + normal_offset, normal_index[elements[x + 6 + FACE_NORMALS]], normal_size);
-        }
-    }
-
-    if (buffers[UVS].len)
-    {
-        for (int x = 0; x < buffers[ELEMENTS].len; x += 9)
-        {
-            step = x / 3;
-            memcpy(((void *)&vertices[0 + step]) + uv_offset, uv_index[elements[x + FACE_UVS]], uv_size);
-            memcpy(((void *)&vertices[1 + step]) + uv_offset, uv_index[elements[x + 3 + FACE_UVS]], uv_size);
-            memcpy(((void *)&vertices[2 + step]) + uv_offset, uv_index[elements[x + 6 + FACE_UVS]], uv_size);
-        }
-    }
-
-    free(buffers[VERTS].data);
-    free(buffers[NORMALS].data);
-    free(buffers[UVS].data);
-    free(buffers[ELEMENTS].data);
-
-    vertex *first = (vertex *)vertices_slice.data;
-    vertex *last = &first[vertices_slice.len - 1];
-
-    mesh->vertices = vertices_slice;
-}
-
 void calculate_normal_per_vertex(slice buffer_slices[COUNT_BUFFERS])
 {
 
@@ -369,4 +268,138 @@ void calculate_normal_per_vertex(slice buffer_slices[COUNT_BUFFERS])
         vec3_norm(normals[x], normals[x]);
     }
     return;
+}
+
+void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS])
+{
+    line_callback_t *callbacks[COUNT_BUFFERS];
+
+    callbacks[VERTS] = &handle_vertex_line;
+    callbacks[UVS] = &handle_uv_line;
+    callbacks[NORMALS] = &handle_normal_line;
+    callbacks[ELEMENTS] = &handle_face_line;
+
+    slice v = new_slice(sizeof(float)), u = new_slice(sizeof(float)),
+          n = new_slice(sizeof(float)), e = new_slice(sizeof(size_t));
+
+    slice *buff_ptr[COUNT_BUFFERS];
+    buff_ptr[VERTS] = &v;
+    buff_ptr[UVS] = &u;
+    buff_ptr[NORMALS] = &n;
+    buff_ptr[ELEMENTS] = &e;
+
+    line_reader(obj_file_name, callbacks, buff_ptr);
+
+    // set output
+    buffers[VERTS] = *buff_ptr[VERTS];
+    buffers[UVS] = *buff_ptr[UVS];
+    buffers[NORMALS] = *buff_ptr[NORMALS];
+    buffers[ELEMENTS] = *buff_ptr[ELEMENTS];
+
+    if (buffers[NORMALS].len < 1)
+    {
+        calculate_normal_per_vertex(buffers);
+    }
+}
+
+void free_buffers(slice buffers[COUNT_BUFFERS])
+{
+    for (size_t i = 0; i < COUNT_BUFFERS; i++)
+    {
+        free(buffers[i].data);
+    }
+}
+
+void load_mesh(const char *obj_file_name, mesh *mesh)
+{
+    slice buffers[COUNT_BUFFERS];
+    load_obj_file(obj_file_name, buffers);
+
+    size_t *elements = (size_t *)buffers[ELEMENTS].data;
+    vec3 *vertices_index = (vec3 *)buffers[VERTS].data;
+    vec3 *normal_index = (vec3 *)buffers[NORMALS].data;
+    vec2 *uv_index = (vec2 *)buffers[UVS].data;
+
+    // TODO: find somewhere else for measuring bounding box
+    int num_verts = buffers[VERTS].len / 3;
+    memset(mesh->bounds, 0, sizeof(mesh->bounds));
+    for (size_t i = 1; i < num_verts; i++)
+    {
+        for (int y = 0; y < 3; y++)
+        {
+            int offset = y * 2;
+            if (vertices_index[i][y] < mesh->bounds[offset])
+            {
+                mesh->bounds[offset] = vertices_index[i][y];
+            }
+            else if (vertices_index[i][y] > mesh->bounds[offset + 1])
+            {
+                mesh->bounds[offset + 1] = vertices_index[i][y];
+            }
+        }
+    }
+
+    vertex vert = {0};
+    uintptr_t position_offset = offsetof(vertex, position);
+    size_t position_size = sizeof(vert.position);
+
+    uintptr_t normal_offset = offsetof(vertex, normal);
+    size_t normal_size = sizeof(vert.normal);
+
+    uintptr_t uv_offset = offsetof(vertex, uv);
+    size_t uv_size = sizeof(vert.uv);
+
+    size_t vertices_len = buffers[ELEMENTS].len / 3;
+    size_t vertices_cap = vertices_len * sizeof(vertex);
+    slice vertices_slice = {
+        vertices_len,
+        vertices_cap,
+        sizeof(vertex),
+        malloc(vertices_cap)};
+    memset(vertices_slice.data, 0, vertices_cap);
+
+    int step;
+    vertex *vertices = (vertex *)vertices_slice.data;
+    for (int x = 0; x < buffers[ELEMENTS].len; x += 9)
+    {
+
+        step = x / 3;
+
+        size_t idx1_src = elements[x + 0 + FACE_VERTS];
+        vec3 *v1_src = &vertices_index[idx1_src];
+        size_t idx2_src = elements[x + 3 + FACE_VERTS];
+        vec3 *v2_src = &vertices_index[idx2_src];
+        size_t idx3_src = elements[x + 6 + FACE_VERTS];
+        vec3 *v3_src = &vertices_index[idx3_src];
+
+        memcpy(((void *)&vertices[0 + step]) + position_offset, vertices_index[elements[x + FACE_VERTS]], position_size);
+        memcpy(((void *)&vertices[1 + step]) + position_offset, vertices_index[elements[x + 3 + FACE_VERTS]], position_size);
+        memcpy(((void *)&vertices[2 + step]) + position_offset, vertices_index[elements[x + 6 + FACE_VERTS]], position_size);
+    }
+
+    if (buffers[NORMALS].len)
+    {
+        for (int x = 0; x < buffers[ELEMENTS].len; x += 9)
+        {
+            step = x / 3;
+            memcpy(((void *)&vertices[0 + step]) + normal_offset, normal_index[elements[x + FACE_NORMALS]], normal_size);
+            memcpy(((void *)&vertices[1 + step]) + normal_offset, normal_index[elements[x + 3 + FACE_NORMALS]], normal_size);
+            memcpy(((void *)&vertices[2 + step]) + normal_offset, normal_index[elements[x + 6 + FACE_NORMALS]], normal_size);
+        }
+    }
+
+    if (buffers[UVS].len)
+    {
+        for (int x = 0; x < buffers[ELEMENTS].len; x += 9)
+        {
+            step = x / 3;
+            memcpy(((void *)&vertices[0 + step]) + uv_offset, uv_index[elements[x + FACE_UVS]], uv_size);
+            memcpy(((void *)&vertices[1 + step]) + uv_offset, uv_index[elements[x + 3 + FACE_UVS]], uv_size);
+            memcpy(((void *)&vertices[2 + step]) + uv_offset, uv_index[elements[x + 6 + FACE_UVS]], uv_size);
+        }
+    }
+
+    mesh->vertices = vertices_slice;
+
+    free_buffers(buffers);
 }

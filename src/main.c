@@ -19,7 +19,7 @@
 #include "types.h"
 
 #define TAU 6.28318530718
-#define COUNT 6
+#define COUNT 7
 
 typedef const char *string;
 
@@ -220,7 +220,7 @@ int init(GLFWwindow *window)
     glClearColor(.25, .25, .25, 1.0);
     glPolygonMode(GL_FRONT, GL_LINE);
     // glPolygonMode(GL_BACK, GL_LINE);
-    glEnable(GL_CULL_FACE); // cull face
+    // glEnable(GL_CULL_FACE); // cull face
     // glCullFace(GL_BACK);    // cull back face
     // glFrontFace(GL_CCW);    // GL_CCW for counter clock-wise
     glEnable(GL_DEPTH_TEST);
