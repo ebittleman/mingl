@@ -5,13 +5,13 @@ void update_camera_vectors(camera *cam);
 
 void init_camera(camera *cam)
 {
-    vec3 position = {0.0f, 0.0f, 5.0f};
-    vec3 up = {0.0f, 1.0f, 0.0f};
+    vec3 position = {0.0f, 0.0f, 0.0f};
+    vec3 world_up = {0.0f, 1.0f, 0.0f};
     vec3 front = {0.0f, 0.0f, -1.0f};
 
     memcpy(cam->position, position, sizeof(cam->position));
     memcpy(cam->front, front, sizeof(cam->front));
-    memcpy(cam->up, up, sizeof(cam->up));
+    memcpy(cam->world_up, world_up, sizeof(cam->world_up));
 
     cam->yaw = YAW;
     cam->pitch = PITCH;
@@ -104,6 +104,6 @@ void update_camera_vectors(camera *cam)
     vec3_norm(cam->right, front_up); // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
 
     vec3 right_front;
-    vec3_mul_cross(right_front, cam->right, cam->world_up);
-    vec3_norm(cam->up, cam->front);
+    vec3_mul_cross(right_front, cam->right, cam->front);
+    vec3_norm(cam->up, right_front);
 }

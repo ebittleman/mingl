@@ -44,10 +44,11 @@ void process_keyboard(GLFWwindow *window, float dt)
         camera_process_keyboard(&cam, RIGHT, dt);
 }
 
+double lastX, lastY;
+bool firstMouse = true;
+
 static void mouse_callback(GLFWwindow *window, double xpos, double ypos)
 {
-    static double lastX, lastY;
-    static bool firstMouse = true;
     if (firstMouse)
     {
         lastX = xpos;
