@@ -1,24 +1,58 @@
+#ifndef CAMERA_H
+#define CAMERA_H
+
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-
-#include "types.h"
+#include <glad/gl.h>
 #include "linmath.h"
 
-typedef struct _Cam
+#define RADS 0.01745329251994329576923690768489
+
+// Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
+enum Camera_Movement
 {
-    float cam_pos[3];
-    float cam_look_at[3];
+    FORWARD = 0,
+    BACKWARD,
+    LEFT,
+    RIGHT
+};
 
-    float cam_speed;
-    float cam_yaw_speed;
-    float cam_yaw;
-    mat4x4 T;
-    mat4x4 R;
-    mat4x4 view;
-} Cam;
+// Default camera values
+static const float YAW = -90.0f;
+static const float PITCH = 0.0f;
+static const float SPEED = 2.5f;
+static const float SENSITIVITY = 0.1f;
+static const float ZOOM = 45.0f;
 
-Cam new_cam();
-void update_cam(Cam *cam);
-void update_cam1(Cam *cam);
-void handle_camera_events(
-    GLFWwindow *window, double elapsed_seconds, Cam *cam);
+// An abstract camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
+
+static float radians(float degrees)
+{
+    return degrees * RADS;
+}
+
+typedef struct _camera
+{
+    // camera Attributes
+    vec3 position;
+    vec3 front;
+    vec3 up;
+    vec3 right;
+    vec3 world_up;
+    // euler Angles
+    float yaw;
+    float pitch;
+    // camera options
+    float movement_speed;
+    float mouse_sensitivity;
+    float zoom;
+
+} camera;
+
+void init_camera(camera *cam);
+void get_view_matrix(mat4x4 m, camera cam);
+void camera_process_keyboard(camera *cam, enum Camera_Movement direction, float deltaTime);
+void process_mouse_movement(camera *cam, float x_offset, float y_offset, GLboolean constrainPitch);
+void process_mouse_scroll(camera *cam, float y_offset);
+
+#endif

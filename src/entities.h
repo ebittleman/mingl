@@ -59,9 +59,16 @@ typedef struct _model
 {
     slice meshes;
     slice vaos;
-    mat4x4 position;
-    mat4x4 current_position;
     float bounds[6];
 } model;
+
+typedef struct _scene
+{
+    slice *models_table;
+    slice models;
+    mat4x4 position;
+    mat4x4 current_position;
+
+} scene;
 
 #endif

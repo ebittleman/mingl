@@ -1,10 +1,13 @@
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #include "opengl.h"
 
-void calculate_projection_matrix(GLFWwindow *window, mat4x4 *p)
+static camera cam;
+
+void calculate_projection_matrix(GLFWwindow *window, mat4x4 *p, float degrees)
 {
     float ratio;
     int width, height;
@@ -15,7 +18,7 @@ void calculate_projection_matrix(GLFWwindow *window, mat4x4 *p)
     glViewport(0, 0, width, height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // mat4x4_ortho(*p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-    mat4x4_perspective(*p, 120.0f, ratio, 0.1f, 1000.0f);
+    mat4x4_perspective(*p, radians(degrees), ratio, 0.1f, 1000.0f);
 }
 
 static void error_callback(int error, const char *description)
@@ -27,6 +30,42 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
+}
+
+void process_keyboard(GLFWwindow *window, float dt)
+{
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera_process_keyboard(&cam, FORWARD, dt);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera_process_keyboard(&cam, BACKWARD, dt);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera_process_keyboard(&cam, LEFT, dt);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera_process_keyboard(&cam, RIGHT, dt);
+}
+
+static void mouse_callback(GLFWwindow *window, double xpos, double ypos)
+{
+    static double lastX, lastY;
+    static bool firstMouse = true;
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
+
+    process_mouse_movement(&cam, xoffset, yoffset, true);
+}
+
+static void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
+{
+    process_mouse_scroll(&cam, yoffset);
 }
 
 void _update_fps_counter(GLFWwindow *window, double current_seconds)
@@ -128,7 +167,7 @@ void render_mesh(Program shader, GLuint vao, mat4x4 vp, mat4x4 position, mesh me
     glBindVertexArray(0);
 }
 
-void render_model(mat4x4 vp, model model)
+void render_model(mat4x4 vp, mat4x4 position, model model)
 {
     GLuint *vaos = (GLuint *)model.vaos.data;
     mesh *meshes = (mesh *)model.meshes.data;
@@ -136,30 +175,43 @@ void render_model(mat4x4 vp, model model)
     {
         // TODO: only render mesh if its on-screen
         glUseProgram(meshes[i].shader->id);
-        render_mesh(*meshes[i].shader, vaos[i], vp, model.current_position, meshes[i]);
+        render_mesh(*meshes[i].shader, vaos[i], vp, position, meshes[i]);
     }
 }
 
-void render(mat4x4 projection, Cam cam, double time, slice shaders, slice models)
+void render_scene(mat4x4 vp, scene scene)
+{
+    size_t *models_idx_data = (size_t *)scene.models.data;
+    model *models_data = (model *)scene.models_table->data;
+    for (size_t i = 0; i < scene.models.len; i++)
+    {
+        model current_model = models_data[models_idx_data[i]];
+        render_model(vp, scene.current_position, current_model);
+    }
+}
+
+void render(mat4x4 projection, camera cam, double time, slice shaders, slice scenes)
 {
     mat4x4 vp;
-    mat4x4_mul(vp, projection, cam.view);
+    mat4x4 view;
+    get_view_matrix(view, cam);
+    mat4x4_mul(vp, projection, view);
 
     Program *shader_data = (Program *)shaders.data;
     for (size_t i = 0; i < shaders.len; i++)
     {
         glUseProgram(shader_data[i].id);
 
-        glUniformMatrix4fv(shader_data[i].uniforms[U_VIEW], 1, GL_FALSE, (const GLfloat *)cam.view);
+        glUniformMatrix4fv(shader_data[i].uniforms[U_VIEW], 1, GL_FALSE, (const GLfloat *)&view);
         glUniformMatrix4fv(shader_data[i].uniforms[U_PROJECTION], 1, GL_FALSE, (const GLfloat *)&projection);
-        glUniform3fv(shader_data[i].uniforms[U_CAM_POS], 1, cam.cam_pos);
+        glUniform3fv(shader_data[i].uniforms[U_CAM_POS], 1, cam.position);
         glUniform1f(shader_data[i].uniforms[U_TIME], (float)time);
     }
 
-    model *models_data = (model *)models.data;
-    for (size_t i = 0; i < models.len; i++)
+    scene *scene_data = (scene *)scenes.data;
+    for (size_t i = 0; i < scenes.len; i++)
     {
-        render_model(vp, models_data[i]);
+        render_scene(vp, scene_data[i]);
     }
 }
 
@@ -197,6 +249,7 @@ void render_object(
 GLFWwindow *init_opengl(init_func_t *init_func)
 {
     GLFWwindow *window;
+    init_camera(&cam);
 
     glfwSetErrorCallback(error_callback);
     if (!glfwInit())
@@ -213,6 +266,9 @@ GLFWwindow *init_opengl(init_func_t *init_func)
         exit(EXIT_FAILURE);
     }
 
+    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
     glfwSetKeyCallback(window, key_callback);
     glfwMakeContextCurrent(window);
     gladLoadGL(glfwGetProcAddress);
@@ -236,9 +292,8 @@ GLFWwindow *init_opengl(init_func_t *init_func)
     return window;
 }
 
-void update_loop(GLFWwindow *window, update_func_t *update_func, slice shaders, slice models)
+void update_loop(GLFWwindow *window, update_func_t *update_func, slice shaders, slice scenes)
 {
-    Cam cam = new_cam();
     mat4x4 projection;
     while (!glfwWindowShouldClose(window))
     {
@@ -249,12 +304,11 @@ void update_loop(GLFWwindow *window, update_func_t *update_func, slice shaders, 
         previous_seconds = current_seconds;
 
         _update_fps_counter(window, current_seconds);
-        calculate_projection_matrix(window, &projection);
-        handle_camera_events(window, dt, &cam);
+        process_keyboard(window, dt);
+        calculate_projection_matrix(window, &projection, cam.zoom);
 
         update_func(window, current_seconds, dt);
-
-        render(projection, cam, current_seconds, shaders, models);
+        render(projection, cam, current_seconds, shaders, scenes);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

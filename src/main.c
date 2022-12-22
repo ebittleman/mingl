@@ -19,7 +19,7 @@
 #include "types.h"
 
 #define TAU 6.28318530718
-#define COUNT 7
+#define COUNT 6
 
 typedef const char *string;
 
@@ -30,7 +30,7 @@ Program program;
 GLint uniforms[COUNT_UNIFORMS];
 GLint mesh_locations[VERTEX_PARAM_COUNT];
 
-static slice shaders, models;
+static slice shaders, models, scenes;
 
 string ASSET_DIR = "assets";
 static slice strings = {0, 0, sizeof(char), NULL};
@@ -161,7 +161,10 @@ int init(GLFWwindow *window)
 
     shaders = new_slice(sizeof(Program));
     models = new_slice(sizeof(model));
+    scenes = new_slice(sizeof(scene));
 
+    scene empty_scene = {0};
+    empty_scene.models_table = &models;
     model empty_model = {0};
     mesh empty_mesh = {0};
 
@@ -209,12 +212,19 @@ int init(GLFWwindow *window)
         // }
 
         memcpy(current_model->bounds, current_mesh->bounds, sizeof(current_mesh->bounds));
-        initial_position(current_model->position, current_model->bounds, x, COUNT);
+        // initial_position(current_model->position, current_model->bounds, x, COUNT);
 
         model cube_model = {0};
         cube(&cube_model, current_model->bounds, (Program *)shaders.data);
-        initial_position(cube_model.position, cube_model.bounds, x, COUNT);
         append_slice(&models, &cube_model);
+
+        append_slice(&scenes, &empty_scene);
+        scene *current_scene = (scene *)get_slice_item(&scenes, scenes.len - 1);
+        initial_position(current_scene->position, cube_model.bounds, x, COUNT);
+
+        current_scene->models = new_slice(sizeof(size_t));
+        append_slice_size_t(&current_scene->models, models.len - 2);
+        append_slice_size_t(&current_scene->models, models.len - 1);
     }
 
     glClearColor(.25, .25, .25, 1.0);
@@ -272,17 +282,17 @@ void calculate_model_position(mat4x4 destination_position, mat4x4 start_position
 void update(GLFWwindow *window, double time, double dt)
 {
     bool reloaded = handle_events(window, &program);
-    model *model_data = (model *)models.data;
-    for (int x = 0; x < models.len; x++)
+    scene *scene_data = (scene *)scenes.data;
+    for (int x = 0; x < scenes.len; x++)
     {
-        model *model = &model_data[x];
-        calculate_model_position(model->current_position, model->position, time);
+        scene *scene = &scene_data[x];
+        calculate_model_position(scene->current_position, scene->position, time);
     }
 }
 
 int main(void)
 {
     GLFWwindow *window = init_opengl(&init);
-    update_loop(window, update, shaders, models);
+    update_loop(window, update, shaders, scenes);
     exit(EXIT_SUCCESS);
 }

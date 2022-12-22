@@ -2,5 +2,6 @@ dist
 obj
 example_project
 assets
+assets_tmp
 build
 .depend

@@ -37,6 +37,11 @@ void expand_slice(slice *s)
     old_data = NULL;
 }
 
+void append_slice_size_t(slice *s, size_t value)
+{
+    append_slice(s, &value);
+}
+
 void append_slice(slice *s, void *item)
 {
     if (s->len + 1 > s->cap)
@@ -71,6 +76,7 @@ void set_slice_item(slice *s, int i, void *item)
         memcpy(dst, item, s->size);
     }
 }
+
 void *get_slice_item(slice *s, int i)
 {
     if (0 <= i && i < s->len)

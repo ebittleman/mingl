@@ -1,115 +1,109 @@
-#include <stdbool.h>
-#include <stdio.h>
 
 #include "camera.h"
 
-Cam new_cam()
+void update_camera_vectors(camera *cam);
+
+void init_camera(camera *cam)
 {
-    Cam cam;
+    vec3 position = {0.0f, 0.0f, 5.0f};
+    vec3 up = {0.0f, 1.0f, 0.0f};
+    vec3 front = {0.0f, 0.0f, -1.0f};
 
-    // cam.cam_pos[0] = -1.1f;
-    // cam.cam_pos[1] = 1.62f;
-    // cam.cam_pos[2] = 4.72f;
-    // cam.cam_pos[0] = -75.0f;
-    // cam.cam_pos[1] = 121.0f;
-    // cam.cam_pos[2] = -100.0f;
-    cam.cam_pos[0] = 0.0f;
-    cam.cam_pos[1] = 0.0f;
-    cam.cam_pos[2] = 5.0f;
+    memcpy(cam->position, position, sizeof(cam->position));
+    memcpy(cam->front, front, sizeof(cam->front));
+    memcpy(cam->up, up, sizeof(cam->up));
 
-    cam.cam_look_at[0] = 0.0f;
-    cam.cam_look_at[1] = 0.0f;
-    cam.cam_look_at[2] = -1.0f;
+    cam->yaw = YAW;
+    cam->pitch = PITCH;
+    cam->movement_speed = SPEED;
+    cam->mouse_sensitivity = SENSITIVITY;
+    cam->zoom = ZOOM;
 
-    cam.cam_speed = 1.0f;
-    cam.cam_yaw_speed = 5.0f;
-    cam.cam_yaw = 0.0f;
-
-    update_cam(&cam);
-
-    return cam;
+    update_camera_vectors(cam);
 }
 
-void update_cam(Cam *cam)
+void get_view_matrix(mat4x4 m, camera cam)
 {
-    static const vec3 up = {0.0f, 1.0f, 0.0};
-    // mat4x4_translate(cam->T, -cam->cam_pos[0], -cam->cam_pos[1], -cam->cam_pos[2]);
-    // mat4x4_identity(cam->R);
-    // mat4x4_rotate_Y(cam->R, cam->R, -cam->cam_yaw);
-    // mat4x4_mul(cam->view, cam->R, cam->T);
-    vec3 eye;
-    vec3_add(eye, cam->cam_pos, cam->cam_look_at);
-    mat4x4_look_at(cam->view, cam->cam_pos, eye, up);
+    vec3 center;
+    vec3_add(center, cam.position, cam.front);
+    mat4x4_look_at(m, cam.position, center, cam.up);
 }
 
-void handle_camera_events(
-    GLFWwindow *window, double elapsed_seconds, Cam *cam)
+void camera_process_keyboard(camera *cam, enum Camera_Movement direction, float deltaTime)
 {
-    bool cam_moved = false;
-    if (glfwGetKey(window, GLFW_KEY_A))
+    float velocity = cam->movement_speed * deltaTime;
+    vec3 tmp;
+    if (direction == FORWARD)
     {
-        cam->cam_pos[0] -= cam->cam_speed * elapsed_seconds;
-        cam_moved = true;
-    }
-    if (glfwGetKey(window, GLFW_KEY_D))
-    {
-        cam->cam_pos[0] += cam->cam_speed * elapsed_seconds;
-        cam_moved = true;
-    }
-    if (glfwGetKey(window, GLFW_KEY_PAGE_UP))
-    {
-        cam->cam_pos[1] += cam->cam_speed * elapsed_seconds;
-        cam_moved = true;
-    }
-    if (glfwGetKey(window, GLFW_KEY_PAGE_DOWN))
-    {
-        cam->cam_pos[1] -= cam->cam_speed * elapsed_seconds;
-        cam_moved = true;
-    }
-    if (glfwGetKey(window, GLFW_KEY_W))
-    {
-        cam->cam_pos[2] -= cam->cam_speed * elapsed_seconds;
-        cam_moved = true;
-    }
-    if (glfwGetKey(window, GLFW_KEY_S))
-    {
-        cam->cam_pos[2] += cam->cam_speed * elapsed_seconds;
-        cam_moved = true;
-    }
-    if (glfwGetKey(window, GLFW_KEY_LEFT))
-    {
-        cam->cam_yaw += cam->cam_yaw_speed * elapsed_seconds;
-        cam->cam_look_at[0] += cam->cam_yaw_speed * elapsed_seconds;
-        cam_moved = true;
-    }
-    if (glfwGetKey(window, GLFW_KEY_RIGHT))
-    {
-        cam->cam_yaw -= cam->cam_yaw_speed * elapsed_seconds;
-        cam->cam_look_at[0] -= cam->cam_yaw_speed * elapsed_seconds;
-        cam_moved = true;
-    }
-    if (glfwGetKey(window, GLFW_KEY_UP))
-    {
-        // cam->cam_yaw += cam->cam_yaw_speed * elapsed_seconds;
-        cam->cam_look_at[1] += cam->cam_yaw_speed * elapsed_seconds;
-        cam_moved = true;
-    }
-    if (glfwGetKey(window, GLFW_KEY_DOWN))
-    {
-        // cam->cam_yaw -= cam->cam_yaw_speed * elapsed_seconds;
-        cam->cam_look_at[1] -= cam->cam_yaw_speed * elapsed_seconds;
-        cam_moved = true;
+        vec3_scale(tmp, cam->front, velocity);
+        vec3_add(cam->position, cam->position, tmp);
     }
 
-    if (cam_moved)
+    if (direction == BACKWARD)
     {
-        update_cam(cam);
-        // printf("Cam Yaw: %f, %f, %f\n", cam->cam_yaw);
-        // debug_mat(cam->view);
-
-        // printf("Cam Position: %f, %f, %f\n",
-        //        cam->cam_pos[0],
-        //        cam->cam_pos[1],
-        //        cam->cam_pos[2]);
+        vec3_scale(tmp, cam->front, velocity);
+        vec3_sub(cam->position, cam->position, tmp);
     }
+
+    if (direction == LEFT)
+    {
+        vec3_scale(tmp, cam->right, velocity);
+        vec3_sub(cam->position, cam->position, tmp);
+    }
+
+    if (direction == RIGHT)
+    {
+        vec3_scale(tmp, cam->right, velocity);
+        vec3_add(cam->position, cam->position, tmp);
+    }
+}
+
+void process_mouse_movement(camera *cam, float x_offset, float y_offset, GLboolean constrainPitch)
+{
+    x_offset *= cam->mouse_sensitivity;
+    y_offset *= cam->mouse_sensitivity;
+
+    cam->yaw += x_offset;
+    cam->pitch += y_offset;
+
+    // make sure that when pitch is out of bounds, screen doesn't get flipped
+    if (constrainPitch)
+    {
+        if (cam->pitch > 89.0f)
+            cam->pitch = 89.0f;
+        if (cam->pitch < -89.0f)
+            cam->pitch = -89.0f;
+    }
+
+    // update Front, Right and Up Vectors using the updated Euler angles
+    update_camera_vectors(cam);
+}
+
+void process_mouse_scroll(camera *cam, float y_offset)
+{
+    cam->zoom -= (float)y_offset;
+    if (cam->zoom < 1.0f)
+        cam->zoom = 1.0f;
+    if (cam->zoom > 45.0f)
+        cam->zoom = 45.0f;
+}
+
+void update_camera_vectors(camera *cam)
+{
+    // calculate the new Front vector
+    vec3 front;
+    front[0] = cosf(radians(cam->yaw)) * cosf(radians(cam->pitch));
+    front[1] = sinf(radians(cam->pitch));
+    front[2] = sinf(radians(cam->yaw)) * cosf(radians(cam->pitch));
+
+    vec3_norm(cam->front, front);
+
+    // also re-calculate the Right and Up vector
+    vec3 front_up;
+    vec3_mul_cross(front_up, cam->front, cam->world_up);
+    vec3_norm(cam->right, front_up); // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+
+    vec3 right_front;
+    vec3_mul_cross(right_front, cam->right, cam->world_up);
+    vec3_norm(cam->up, cam->front);
 }

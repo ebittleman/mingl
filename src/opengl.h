@@ -19,7 +19,7 @@ GLFWwindow *init_opengl(init_func_t *init_func);
 
 void load_mesh_shader(Program *program, const char *vert_file, const char *frag_file);
 GLuint setup_mesh(mesh mesh);
-void update_loop(GLFWwindow *window, update_func_t *update_func, slice shaders, slice models);
+void update_loop(GLFWwindow *window, update_func_t *update_func, slice shaders, slice scenes);
 
 typedef struct _vao
 {
@@ -37,12 +37,5 @@ typedef struct _shader
     GLint *uniforms;
     GLint *inputs;
 } shader;
-
-typedef struct _scene
-{
-    vao vao;
-    shader shader;
-    model model;
-} scene;
 
 #endif
