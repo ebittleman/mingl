@@ -38,7 +38,8 @@
         "stack": "c",
         "unordered_map": "c",
         "unordered_set": "c",
-        "vector": "c"
+        "vector": "c",
+        "entities.h": "c"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",

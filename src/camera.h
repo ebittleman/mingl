@@ -4,7 +4,7 @@
 #include "types.h"
 #include "linmath.h"
 
-struct Cam
+typedef struct _Cam
 {
     float cam_pos[3];
     float cam_look_at[3];
@@ -15,10 +15,10 @@ struct Cam
     mat4x4 T;
     mat4x4 R;
     mat4x4 view;
-};
+} Cam;
 
-struct Cam new_cam();
-void update_cam(struct Cam *cam);
-void update_cam1(struct Cam *cam);
+Cam new_cam();
+void update_cam(Cam *cam);
+void update_cam1(Cam *cam);
 void handle_camera_events(
-    GLFWwindow *window, double elapsed_seconds, struct Cam *cam);
+    GLFWwindow *window, double elapsed_seconds, Cam *cam);

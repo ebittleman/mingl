@@ -12,6 +12,8 @@
 
 #include "obj3d.h"
 #include "opengl.h"
+#include "entities.h"
+#include "cube.h"
 #include "linmath.h"
 #include "shaders.h"
 #include "types.h"
@@ -25,7 +27,10 @@ const char *default_vert_file = "src/shaders/default/default.vert";
 const char *default_frag_file = "src/shaders/default/default.frag";
 
 Program program;
-object objects[COUNT];
+GLint uniforms[COUNT_UNIFORMS];
+GLint mesh_locations[VERTEX_PARAM_COUNT];
+
+static slice shaders, models;
 
 string ASSET_DIR = "assets";
 static slice strings = {0, 0, sizeof(char), NULL};
@@ -59,44 +64,69 @@ int list_files(string dir_name, slice *files)
     return 0;
 }
 
-// requires `glDrawArrays`
-void calculate_normals_per_face(slice buffer_slices[COUNT_BUFFERS])
+void cube(model *m, float bounds[6], Program *shader)
 {
+    vertex vertices[36];
+    // float bounds[6] = {
+    //     -0.5f, 0.5f,
+    //     -0.5f, 0.5f,
+    //     -0.5f, 0.5f};
+    cube_vertices(vertices, bounds);
 
-    reset_slice(&buffer_slices[NORMALS],
-                buffer_slices[VERTS].size,
-                buffer_slices[VERTS].len,
-                buffer_slices[VERTS].cap);
+    mesh current_mesh;
+    current_mesh.vertices = new_slice(sizeof(vertex));
+    current_mesh.shader = shader;
+    memcpy(current_mesh.bounds, bounds, sizeof(current_mesh.bounds));
+    extend_slice(&current_mesh.vertices, sizeof(vertices) / sizeof(vertex), vertices);
 
-    vec3 *vertices = (vec3 *)buffer_slices[VERTS].data;
-    vec3 *normals = (vec3 *)buffer_slices[NORMALS].data;
+    reset_slice(&m->vaos, sizeof(GLuint), 0, 1);
+    reset_slice(&m->meshes, sizeof(mesh), 0, 1);
 
-    vec3 normal, a, b;
-    for (int x = 0; x < buffer_slices[VERTS].len; x += 3)
-    {
-        float *p1 = vertices[x];
-        float *p2 = vertices[x + 1];
-        float *p3 = vertices[x + 2];
+    GLuint vao = setup_mesh(current_mesh);
+    append_slice(&m->vaos, &vao);
+    append_slice(&m->meshes, &current_mesh);
 
-        vec3_sub(a, p2, p1);
-        vec3_sub(b, p3, p1);
-        vec3_mul_cross(normal, a, b);
-
-        float *n1 = normals[x];
-        float *n2 = normals[x + 1];
-        float *n3 = normals[x + 2];
-
-        vec3_norm(normal, normal);
-
-        vec3_dup(n1, normal);
-        vec3_dup(n2, normal);
-        vec3_dup(n3, normal);
-    }
-
-    return;
+    memcpy(m->bounds, bounds, sizeof(m->bounds));
 }
 
-void init_obj_model(mat4x4 m, float bounds[6], int x, int count)
+// requires `glDrawArrays`
+// void calculate_normals_per_face(slice buffer_slices[COUNT_BUFFERS])
+// {
+
+//     reset_slice(&buffer_slices[NORMALS],
+//                 buffer_slices[VERTS].size,
+//                 buffer_slices[VERTS].len,
+//                 buffer_slices[VERTS].cap);
+
+//     vec3 *vertices = (vec3 *)buffer_slices[VERTS].data;
+//     vec3 *normals = (vec3 *)buffer_slices[NORMALS].data;
+
+//     vec3 normal, a, b;
+//     for (int x = 0; x < buffer_slices[VERTS].len; x += 3)
+//     {
+//         float *p1 = vertices[x];
+//         float *p2 = vertices[x + 1];
+//         float *p3 = vertices[x + 2];
+
+//         vec3_sub(a, p2, p1);
+//         vec3_sub(b, p3, p1);
+//         vec3_mul_cross(normal, a, b);
+
+//         float *n1 = normals[x];
+//         float *n2 = normals[x + 1];
+//         float *n3 = normals[x + 2];
+
+//         vec3_norm(normal, normal);
+
+//         vec3_dup(n1, normal);
+//         vec3_dup(n2, normal);
+//         vec3_dup(n3, normal);
+//     }
+
+//     return;
+// }
+
+void initial_position(mat4x4 m, float bounds[6], int x, int count)
 {
     mat4x4 S, T;
     float ranges[3] = {
@@ -128,7 +158,18 @@ void init_obj_model(mat4x4 m, float bounds[6], int x, int count)
 
 int init(GLFWwindow *window)
 {
-    load_program(&program, default_vert_file, default_frag_file);
+
+    shaders = new_slice(sizeof(Program));
+    models = new_slice(sizeof(model));
+
+    model empty_model = {0};
+    mesh empty_mesh = {0};
+
+    Program shader;
+    shader.uniforms = uniforms;
+    shader.input_locations = mesh_locations;
+    load_mesh_shader(&shader, default_vert_file, default_frag_file);
+    append_slice(&shaders, &shader);
 
     slice files = new_slice(sizeof(size_t));
     size_t *idx = (size_t *)files.data;
@@ -140,31 +181,48 @@ int init(GLFWwindow *window)
 
     for (int x = 0; x < COUNT; x++)
     {
-        char *filename = strings.data + idx[x];
-        float bounds[6] = {0};
-        objects[x].program = &program;
-        memset(objects[x].buffer_slices, 0, sizeof(objects[x].buffer_slices));
-        load_obj_file(filename, objects[x].buffer_slices, bounds);
+        const char *filename = strings.data + idx[x];
 
-        if (!objects[x].buffer_slices[NORMALS].len)
-        {
-            printf("Calculating normals for: %s\n", filename);
-            calculate_normals_per_face(objects[x].buffer_slices);
-        }
+        append_slice(&models, &empty_model);
 
-        init_obj_model(objects[x].init_model, bounds, x, COUNT);
+        model *current_model = (model *)get_slice_item(&models, models.len - 1);
+        current_model->meshes = new_slice(sizeof(empty_mesh));
+        current_model->vaos = new_slice(sizeof(GLuint));
+
+        slice meshes = current_model->meshes;
+
+        append_slice(&current_model->meshes, &empty_mesh);
+        mesh *current_mesh = &current_model->meshes.data[0];
+
+        current_mesh->shader = (Program *)shaders.data;
+        load_mesh(filename, current_mesh);
 
         // send geometry to OpenGL
-        buffer_object_to_vao(&objects[x]);
+        GLuint vao = setup_mesh(*current_mesh);
+        append_slice(&current_model->vaos, &vao);
+
+        // todo: calculate normals, tangents, and bitangents for meshes
+        // if (!objects[x].buffer_slices[NORMALS].len)
+        // {
+        //     printf("Calculating normals for: %s\n", filename);
+        //     calculate_normals_per_face(objects[x].buffer_slices);
+        // }
+
+        memcpy(current_model->bounds, current_mesh->bounds, sizeof(current_mesh->bounds));
+        initial_position(current_model->position, current_model->bounds, x, COUNT);
+
+        model cube_model = {0};
+        cube(&cube_model, current_model->bounds, (Program *)shaders.data);
+        initial_position(cube_model.position, cube_model.bounds, x, COUNT);
+        append_slice(&models, &cube_model);
     }
 
     glClearColor(.25, .25, .25, 1.0);
-    // glPolygonMode(GL_FRONT, GL_LINE);
+    glPolygonMode(GL_FRONT, GL_LINE);
     // glPolygonMode(GL_BACK, GL_LINE);
-    // glPolygonMode(GL_BACK, GL_LINE);
-    // glEnable(GL_CULL_FACE); // cull face
+    glEnable(GL_CULL_FACE); // cull face
     // glCullFace(GL_BACK);    // cull back face
-    // glFrontFace(GL_CW); // GL_CCW for counter clock-wise
+    // glFrontFace(GL_CCW);    // GL_CCW for counter clock-wise
     glEnable(GL_DEPTH_TEST);
 
     return 0;
@@ -180,57 +238,51 @@ bool handle_events(GLFWwindow *window, Program *program)
     }
     else if (!down && reload_key_pressed)
     {
-        reload_key_pressed = false;
-        reload_shader_program_from_files(
-            &program->id,
-            program->vert_file,
-            program->frag_file);
-        set_uniforms_and_inputs(
-            program->id, program->uniforms,
-            program->input_locations);
-        printf("reloaded shaders\n");
+        // TODO: get reloading working again
+        // reload_key_pressed = false;
+        // reload_shader_program_from_files(
+        //     &program->id,
+        //     program->vert_file,
+        //     program->frag_file);
+        // set_uniforms_and_inputs(
+        //     program->id, program->uniforms,
+        //     program->input_locations);
+        // printf("reloaded shaders\n");
         return true;
     }
 
     return false;
 }
 
-void calculate_model_position(mat4x4 m, mat4x4 obj, double time)
+void calculate_model_position(mat4x4 destination_position, mat4x4 start_position, double time)
 {
-    mat4x4_dup(m, obj);
-    // mat4x4_identity(m);
-    // mat4x4_scale(m, m, 1.0f / 12.0f);
-    // mat4x4_translate_in_place(m, .1f, .2f, .5f);
+    mat4x4_dup(destination_position, start_position);
+    // mat4x4_identity(destination_position);
+    // mat4x4_scale(destination_position, destination_position, 1.0f / 12.0f);
+    // mat4x4_translate_in_place(destination_position, .1f, .2f, .5f);
 
-    // mat4x4_rotate_X(m, m, time * TAU * .1);
-    // mat4x4_rotate_Y(m, m, time * TAU * .1);
-    // mat4x4_rotate_Z(m, m, time * TAU * .1);
+    // mat4x4_rotate_X(destination_position, destination_position, time * TAU * .1);
+    mat4x4_rotate_Y(destination_position, destination_position, time * TAU * .1);
+    // mat4x4_rotate_Z(destination_position, destination_position, time * TAU * .1);
 
-    // mat4x4_mul(m, m, obj);
-    // debug_mat(m);
+    // mat4x4_mul(destination_position, destination_position, obj);
+    // debug_mat(destination_position);
 }
 
 void update(GLFWwindow *window, double time, double dt)
 {
     bool reloaded = handle_events(window, &program);
-    for (int x = 0; x < COUNT; x++)
+    model *model_data = (model *)models.data;
+    for (int x = 0; x < models.len; x++)
     {
-        object *obj = &objects[x];
-        calculate_model_position(obj->model, obj->init_model, time);
-        if (reloaded)
-        {
-            glUseProgram(obj->program->id);
-            glBindVertexArray(obj->vertex_array);
-            configure_vertex_attributes(
-                obj->vertex_buffers, obj->program->input_locations,
-                obj->buffer_disabled);
-        }
+        model *model = &model_data[x];
+        calculate_model_position(model->current_position, model->position, time);
     }
 }
 
 int main(void)
 {
     GLFWwindow *window = init_opengl(&init);
-    update_loop(window, update, COUNT, objects);
+    update_loop(window, update, shaders, models);
     exit(EXIT_SUCCESS);
 }

@@ -49,89 +49,118 @@ void _update_fps_counter(GLFWwindow *window, double current_seconds)
     frame_count++;
 }
 
-void set_uniforms_and_inputs(
-    GLuint id, GLint uniforms[COUNT_UNIFORMS],
-    GLint input_locations[ELEMENTS])
+GLuint setup_mesh(mesh mesh)
 {
-    uniforms[U_MVP] = glGetUniformLocation(id, "mvp_matrix");
-    uniforms[U_MODEL] = glGetUniformLocation(id, "model_matrix");
-    uniforms[U_VIEW] = glGetUniformLocation(id, "view_matrix");
-    uniforms[U_PROJECTION] = glGetUniformLocation(id, "proj_matrix");
-    uniforms[U_CAM_POS] = glGetUniformLocation(id, "cam_pos");
-    uniforms[U_TIME] = glGetUniformLocation(id, "time");
+    GLuint vao, vbo;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
 
-    // buffer attributes
-    for (int x = 0; x < ELEMENTS; x++)
-    {
-        input_locations[x] = glGetAttribLocation(id, IN_NAMES[x]);
-    }
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER,
+                 mesh.vertices.len * mesh.vertices.size,
+                 mesh.vertices.data, GL_STATIC_DRAW);
+
+    // set the vertex attribute pointers
+    // vertex Positions
+    glEnableVertexAttribArray(VERTEX_POSITION);
+    glVertexAttribPointer(VERTEX_POSITION, 3, GL_FLOAT, GL_FALSE, mesh.vertices.size, (void *)0);
+
+    // vertex normals
+    glEnableVertexAttribArray(VERTEX_NORMAL);
+    glVertexAttribPointer(VERTEX_NORMAL, 3, GL_FLOAT, GL_FALSE, mesh.vertices.size, (void *)offsetof(vertex, normal));
+
+    // vertex texture coords
+    glEnableVertexAttribArray(VERTEX_UV);
+    glVertexAttribPointer(VERTEX_UV, 2, GL_FLOAT, GL_FALSE, mesh.vertices.size, (void *)offsetof(vertex, uv));
+
+    // vertex tangent
+    glEnableVertexAttribArray(VERTEX_TANGENT);
+    glVertexAttribPointer(VERTEX_TANGENT, 3, GL_FLOAT, GL_FALSE, mesh.vertices.size, (void *)offsetof(vertex, tangent));
+
+    // vertex bitangent
+    glEnableVertexAttribArray(VERTEX_BITANGENT);
+    glVertexAttribPointer(VERTEX_BITANGENT, 3, GL_FLOAT, GL_FALSE, mesh.vertices.size, (void *)offsetof(vertex, bitangent));
+
+    // ids
+    glEnableVertexAttribArray(VERTEX_BONE_IDS);
+    glVertexAttribIPointer(VERTEX_BONE_IDS, 4, GL_INT, mesh.vertices.size, (void *)offsetof(vertex, bones));
+
+    // weights
+    glEnableVertexAttribArray(VERTEX_BONE_WEIGHTS);
+    glVertexAttribPointer(VERTEX_BONE_WEIGHTS, 4, GL_FLOAT, GL_FALSE, mesh.vertices.size, (void *)offsetof(vertex, bone_weight));
+
+    glBindVertexArray(0);
+    return vao;
 }
 
-void load_program(Program *program, const char *vert_file, const char *frag_file)
+void load_mesh_shader(Program *program, const char *vert_file, const char *frag_file)
 {
     GLuint id = create_shader_program_from_files(vert_file, frag_file);
     program->id = id;
     program->vert_file = vert_file;
     program->frag_file = frag_file;
 
-    set_uniforms_and_inputs(id, program->uniforms, program->input_locations);
-}
+    program->uniforms[U_MVP] = glGetUniformLocation(id, "mvp_matrix");
+    program->uniforms[U_MODEL] = glGetUniformLocation(id, "model_matrix");
+    program->uniforms[U_VIEW] = glGetUniformLocation(id, "view_matrix");
+    program->uniforms[U_PROJECTION] = glGetUniformLocation(id, "proj_matrix");
+    program->uniforms[U_CAM_POS] = glGetUniformLocation(id, "cam_pos");
+    program->uniforms[U_TIME] = glGetUniformLocation(id, "time");
 
-void configure_vertex_attributes(
-    GLuint vertex_buffers[COUNT_BUFFERS],
-    GLint input_locations[ELEMENTS],
-    bool buffer_disabled[COUNT_BUFFERS])
-{
-    for (int x = 0; x < ELEMENTS; x++)
+    // buffer attributes
+    for (int x = 0; x < VERTEX_PARAM_COUNT; x++)
     {
-        if (buffer_disabled[x])
-        {
-            // printf("disabled: %s\n", IN_NAMES[x]);
-            glDisableVertexAttribArray(input_locations[x]);
-        }
-        else
-        {
-            // printf("enabled: %s\n", IN_NAMES[x]);
-            glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[x]);
-            glVertexAttribPointer(
-                input_locations[x], BUFFER_SIZES[x], GL_FLOAT,
-                GL_FALSE, 0, (void *)0);
-            glEnableVertexAttribArray(input_locations[x]);
-        }
+        program->input_locations[x] = glGetAttribLocation(id, vertex_param_names[x]);
     }
 }
 
-void buffer_object_to_vao(object *o)
+void render_mesh(Program shader, GLuint vao, mat4x4 vp, mat4x4 position, mesh mesh)
 {
+    mat4x4 mvp;
+    mat4x4_mul(mvp, vp, position);
 
-    glGenVertexArrays(1, &o->vertex_array);
-    glBindVertexArray(o->vertex_array);
-    glGenBuffers(COUNT_BUFFERS, o->vertex_buffers);
+    glUniformMatrix4fv(shader.uniforms[U_MVP], 1, GL_FALSE, (const GLfloat *)mvp);
+    glUniformMatrix4fv(shader.uniforms[U_MODEL], 1, GL_FALSE, (const GLfloat *)position);
 
-    for (int x = 0; x < ELEMENTS; x++)
-    {
-        glBindBuffer(GL_ARRAY_BUFFER, o->vertex_buffers[x]);
-        glBufferData(GL_ARRAY_BUFFER,
-                     o->buffer_slices[x].len * o->buffer_slices[x].size,
-                     o->buffer_slices[x].data, GL_STATIC_DRAW);
-        o->buffer_disabled[x] = !o->buffer_slices[x].len;
-    }
-
-    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, o->vertex_buffers[ELEMENTS]);
-    // glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-    //              o->buffer_slices[ELEMENTS].len * o->buffer_slices[ELEMENTS].size,
-    //              o->buffer_slices[ELEMENTS].data, GL_STATIC_DRAW);
-    // o->buffer_disabled[ELEMENTS] = !o->buffer_slices[ELEMENTS].len;
-
-    // o->element_count = o->buffer_slices[ELEMENTS].len;
-    o->element_count = o->buffer_slices[VERTS].len;
-
-    configure_vertex_attributes(
-        o->vertex_buffers, o->program->input_locations,
-        o->buffer_disabled);
-
+    glBindVertexArray(vao);
+    glDrawArrays(GL_TRIANGLES, 0, mesh.vertices.len);
     glBindVertexArray(0);
-    return;
+}
+
+void render_model(mat4x4 vp, model model)
+{
+    GLuint *vaos = (GLuint *)model.vaos.data;
+    mesh *meshes = (mesh *)model.meshes.data;
+    for (size_t i = 0; i < model.vaos.len; i++)
+    {
+        // TODO: only render mesh if its on-screen
+        glUseProgram(meshes[i].shader->id);
+        render_mesh(*meshes[i].shader, vaos[i], vp, model.current_position, meshes[i]);
+    }
+}
+
+void render(mat4x4 projection, Cam cam, double time, slice shaders, slice models)
+{
+    mat4x4 vp;
+    mat4x4_mul(vp, projection, cam.view);
+
+    Program *shader_data = (Program *)shaders.data;
+    for (size_t i = 0; i < shaders.len; i++)
+    {
+        glUseProgram(shader_data[i].id);
+
+        glUniformMatrix4fv(shader_data[i].uniforms[U_VIEW], 1, GL_FALSE, (const GLfloat *)cam.view);
+        glUniformMatrix4fv(shader_data[i].uniforms[U_PROJECTION], 1, GL_FALSE, (const GLfloat *)&projection);
+        glUniform3fv(shader_data[i].uniforms[U_CAM_POS], 1, cam.cam_pos);
+        glUniform1f(shader_data[i].uniforms[U_TIME], (float)time);
+    }
+
+    model *models_data = (model *)models.data;
+    for (size_t i = 0; i < models.len; i++)
+    {
+        render_model(vp, models_data[i]);
+    }
 }
 
 void render_object(
@@ -207,36 +236,30 @@ GLFWwindow *init_opengl(init_func_t *init_func)
     return window;
 }
 
-void update_loop(GLFWwindow *window, update_func_t *update_func, int n, object *objects)
+void update_loop(GLFWwindow *window, update_func_t *update_func, slice shaders, slice models)
 {
-    struct Cam cam = new_cam();
-    mat4x4 proj;
-
+    Cam cam = new_cam();
+    mat4x4 projection;
     while (!glfwWindowShouldClose(window))
     {
+
         static double previous_seconds = 0.0;
         double current_seconds = glfwGetTime();
         double dt = current_seconds - previous_seconds;
         previous_seconds = current_seconds;
 
         _update_fps_counter(window, current_seconds);
-        calculate_projection_matrix(window, &proj);
+        calculate_projection_matrix(window, &projection);
         handle_camera_events(window, dt, &cam);
 
         update_func(window, current_seconds, dt);
 
-        for (int x = 0; x < n; x++)
-        {
-            object obj = objects[x];
-            render_object(
-                obj.vertex_array, obj.element_count,
-                *obj.program, cam.cam_pos, proj, cam.view,
-                obj.model, current_seconds);
-        }
+        render(projection, cam, current_seconds, shaders, models);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
     glfwDestroyWindow(window);
     glfwTerminate();
 }

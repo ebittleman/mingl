@@ -3,9 +3,9 @@
 
 #include "camera.h"
 
-struct Cam new_cam()
+Cam new_cam()
 {
-    struct Cam cam;
+    Cam cam;
 
     // cam.cam_pos[0] = -1.1f;
     // cam.cam_pos[1] = 1.62f;
@@ -30,7 +30,7 @@ struct Cam new_cam()
     return cam;
 }
 
-void update_cam(struct Cam *cam)
+void update_cam(Cam *cam)
 {
     static const vec3 up = {0.0f, 1.0f, 0.0};
     // mat4x4_translate(cam->T, -cam->cam_pos[0], -cam->cam_pos[1], -cam->cam_pos[2]);
@@ -43,7 +43,7 @@ void update_cam(struct Cam *cam)
 }
 
 void handle_camera_events(
-    GLFWwindow *window, double elapsed_seconds, struct Cam *cam)
+    GLFWwindow *window, double elapsed_seconds, Cam *cam)
 {
     bool cam_moved = false;
     if (glfwGetKey(window, GLFW_KEY_A))

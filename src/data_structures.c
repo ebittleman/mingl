@@ -52,7 +52,7 @@ void append_slice(slice *s, void *item)
 
 void extend_slice(slice *s, int n, void *item)
 {
-    if (s->len + n > s->cap)
+    while (s->len + n > s->cap)
     {
         expand_slice(s);
     }
