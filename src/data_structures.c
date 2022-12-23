@@ -115,3 +115,10 @@ void debug_mat(mat4x4 m)
     printf("%f %f %f %f\n", m[2][0], m[2][1], m[2][2], m[2][3]);
     printf("%f %f %f %f\n", m[3][0], m[3][1], m[3][2], m[3][3]);
 }
+
+void debug_bounds(float bounds[6])
+{
+    printf("x:%f = %f - %f\n", bounds[1] - bounds[0], bounds[1], bounds[0]);
+    printf("y:%f = %f - %f\n", bounds[3] - bounds[2], bounds[3], bounds[2]);
+    printf("z:%f = %f - %f\n", bounds[5] - bounds[4], bounds[5], bounds[4]);
+}

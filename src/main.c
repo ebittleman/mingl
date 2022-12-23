@@ -67,10 +67,6 @@ int list_files(string dir_name, slice *files)
 void cube(model *m, float bounds[6], Program *shader)
 {
     vertex vertices[36];
-    // float bounds[6] = {
-    //     -0.5f, 0.5f,
-    //     -0.5f, 0.5f,
-    //     -0.5f, 0.5f};
     cube_vertices(vertices, bounds);
 
     mesh current_mesh;
@@ -146,14 +142,17 @@ void initial_position(mat4x4 m, float bounds[6], int x, int count)
     float scale = 1.0f / max;
     mat4x4_translate( // starts with identity matrix then sets translation
         m,
-        (-(bounds[0] * scale) - (ranges[0] / 2.0) * scale) + ((float)x * 2) - (float)count,
-        -(bounds[2] * scale) - (ranges[1] / 2.0) * scale,
-        -(bounds[4] * scale) - (ranges[2] / 2.0) * scale);
+        ((ranges[0] / 2.0f - bounds[1]) * scale) + ((float)x * 2) - (float)count,
+        (ranges[1] / 2.0f - bounds[3]) * scale,
+        (ranges[2] / 2.0f - bounds[5]) * scale);
+    // mat4x4_identity(m);
     mat4x4_identity(S);
     mat4x4_scale_aniso(S, S, scale, scale, scale);
     mat4x4_mul(m, m, S);
 
     // debug_mat(m);
+    // debug_bounds(bounds);
+    // debug_vec3(ranges);
 }
 
 int init(GLFWwindow *window)
@@ -163,8 +162,8 @@ int init(GLFWwindow *window)
     models = new_slice(sizeof(model));
     scenes = new_slice(sizeof(scene));
 
-    scene empty_scene = {0};
-    empty_scene.models_table = &models;
+    scene empty_scene = {&models, 0, 0, 0};
+
     model empty_model = {0};
     mesh empty_mesh = {0};
 
@@ -212,18 +211,17 @@ int init(GLFWwindow *window)
         // }
 
         memcpy(current_model->bounds, current_mesh->bounds, sizeof(current_mesh->bounds));
-        // initial_position(current_model->position, current_model->bounds, x, COUNT);
+
+        append_slice(&scenes, &empty_scene);
+        scene *current_scene = (scene *)get_slice_item(&scenes, scenes.len - 1);
+        initial_position(current_scene->position, current_model->bounds, x, COUNT);
+
+        current_scene->models = new_slice(sizeof(size_t));
+        append_slice_size_t(&current_scene->models, models.len - 1);
 
         model cube_model = {0};
         cube(&cube_model, current_model->bounds, (Program *)shaders.data);
         append_slice(&models, &cube_model);
-
-        append_slice(&scenes, &empty_scene);
-        scene *current_scene = (scene *)get_slice_item(&scenes, scenes.len - 1);
-        initial_position(current_scene->position, cube_model.bounds, x, COUNT);
-
-        current_scene->models = new_slice(sizeof(size_t));
-        append_slice_size_t(&current_scene->models, models.len - 2);
         append_slice_size_t(&current_scene->models, models.len - 1);
     }
 
@@ -271,11 +269,11 @@ void calculate_model_position(mat4x4 destination_position, mat4x4 start_position
     // mat4x4_scale(destination_position, destination_position, 1.0f / 12.0f);
     // mat4x4_translate_in_place(destination_position, .1f, .2f, .5f);
 
-    // mat4x4_rotate_X(destination_position, destination_position, time * TAU * .1);
+    mat4x4_rotate_X(destination_position, destination_position, time * TAU * .1);
     mat4x4_rotate_Y(destination_position, destination_position, time * TAU * .1);
-    // mat4x4_rotate_Z(destination_position, destination_position, time * TAU * .1);
+    mat4x4_rotate_Z(destination_position, destination_position, time * TAU * .1);
 
-    // mat4x4_mul(destination_position, destination_position, obj);
+    // mat4x4_mul(destination_position, destination_position, start_position);
     // debug_mat(destination_position);
 }
 

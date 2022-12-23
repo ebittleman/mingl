@@ -322,7 +322,12 @@ void load_mesh(const char *obj_file_name, mesh *mesh)
 
     // TODO: find somewhere else for measuring bounding box
     int num_verts = buffers[VERTS].len / 3;
-    memset(mesh->bounds, 0, sizeof(mesh->bounds));
+    mesh->bounds[0] = vertices_index[0][0];
+    mesh->bounds[1] = vertices_index[0][0];
+    mesh->bounds[2] = vertices_index[0][1];
+    mesh->bounds[3] = vertices_index[0][1];
+    mesh->bounds[4] = vertices_index[0][2];
+    mesh->bounds[5] = vertices_index[0][2];
     for (size_t i = 1; i < num_verts; i++)
     {
         for (int y = 0; y < 3; y++)
@@ -338,6 +343,23 @@ void load_mesh(const char *obj_file_name, mesh *mesh)
             }
         }
     }
+
+    vec3 to_local_origin = {
+        ((mesh->bounds[1] - mesh->bounds[0]) / 2) - mesh->bounds[1],
+        ((mesh->bounds[3] - mesh->bounds[2]) / 2) - mesh->bounds[3],
+        ((mesh->bounds[5] - mesh->bounds[4]) / 2) - mesh->bounds[5],
+    };
+
+    for (size_t i = 0; i < buffers[VERTS].len / 3; i++)
+    {
+        vec3_add(vertices_index[i], vertices_index[i], to_local_origin);
+    }
+    mesh->bounds[0] += to_local_origin[0];
+    mesh->bounds[1] += to_local_origin[0];
+    mesh->bounds[2] += to_local_origin[1];
+    mesh->bounds[3] += to_local_origin[1];
+    mesh->bounds[4] += to_local_origin[2];
+    mesh->bounds[5] += to_local_origin[2];
 
     vertex vert = {0};
     uintptr_t position_offset = offsetof(vertex, position);

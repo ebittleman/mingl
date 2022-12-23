@@ -25,5 +25,6 @@ void append_slice_size_t(slice *s, size_t value);
 
 void debug_vec3(vec3 v);
 void debug_mat(mat4x4 m);
+void debug_bounds(float bounds[6]);
 
 #endif

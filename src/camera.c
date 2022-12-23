@@ -5,7 +5,7 @@ void update_camera_vectors(camera *cam);
 
 void init_camera(camera *cam)
 {
-    vec3 position = {0.0f, 0.0f, 0.0f};
+    vec3 position = {0.0f, 1.0f, 15.0f};
     vec3 world_up = {0.0f, 1.0f, 0.0f};
     vec3 front = {0.0f, 0.0f, -1.0f};
 

@@ -45,5 +45,5 @@ void main() {
     // vec3 outc = cos(colorInterp.xxx * TAU * 2 + timeInterp * 10) * .5 + .5;
     // outColor = vec4(outc.x, outc.x + xOffest.x, outc.z, 1);
 
-    // outColor = colorInterp;
+    // outColor = RED;
 }

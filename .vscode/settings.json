@@ -39,7 +39,8 @@
         "unordered_map": "c",
         "unordered_set": "c",
         "vector": "c",
-        "entities.h": "c"
+        "entities.h": "c",
+        "__bit_reference": "c"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",
