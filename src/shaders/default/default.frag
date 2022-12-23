@@ -16,7 +16,7 @@ out vec4 outColor;
 float near = 0.1;
 float far = 100.0;
 vec3 lightColor = vec3(1.0f);
-vec3 lightPos = vec3(0.0f, -6.0f, 15.0f);
+vec3 lightPos = vec3(100.0f, 100.0f, 100.0f);
 
 float ambientStrength = 0.1;
 float specularStrength = 0.5;

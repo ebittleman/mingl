@@ -27,11 +27,10 @@ out float timInterp;
 void main() {
     gl_Position = mvp_matrix * vec4(position, 1.0);
 
-    colorInterp = vec4(0.6f, 0.6f, 0.6f, 1.0f);
     uvInterp = uv;
     timInterp = time;
     normalInterp = mat3(view_matrix * model_matrix) * normal;
-    // normalInterp = mat3(transpose(inverse(model_matrix))) * normal;
-    // colorInterp = vec4(normalInterp, 1.0f);
+    // colorInterp = vec4(0.6f, 0.6f, 0.6f, 1.0f);
+    colorInterp = vec4(normalize(mat3(model_matrix) * normal), 1.0f);
     fragPosInterp = vec3(model_matrix * vec4(position, 1.0));
 }

@@ -5,7 +5,7 @@ void update_camera_vectors(camera *cam);
 
 void init_camera(camera *cam)
 {
-    vec3 position = {0.0f, 1.0f, 15.0f};
+    vec3 position = {0.0f, 0.5f, 10.0f};
     vec3 world_up = {0.0f, 1.0f, 0.0f};
     vec3 front = {0.0f, 0.0f, -1.0f};
 
@@ -58,13 +58,34 @@ void camera_process_keyboard(camera *cam, enum Camera_Movement direction, float 
     }
 }
 
-void process_mouse_movement(camera *cam, float x_offset, float y_offset, GLboolean constrainPitch)
+void process_mouse_movement_by_offset(
+    camera *cam, float x_offset, float y_offset,
+    GLboolean constrainPitch)
 {
     x_offset *= cam->mouse_sensitivity;
     y_offset *= cam->mouse_sensitivity;
 
     cam->yaw += x_offset;
     cam->pitch += y_offset;
+
+    // make sure that when pitch is out of bounds, screen doesn't get flipped
+    if (constrainPitch)
+    {
+        if (cam->pitch > 89.0f)
+            cam->pitch = 89.0f;
+        if (cam->pitch < -89.0f)
+            cam->pitch = -89.0f;
+    }
+
+    // update Front, Right and Up Vectors using the updated Euler angles
+    update_camera_vectors(cam);
+}
+
+void process_mouse_movement(camera *cam, float yaw, float pitch, GLboolean constrainPitch)
+{
+
+    cam->yaw = yaw;
+    cam->pitch = pitch;
 
     // make sure that when pitch is out of bounds, screen doesn't get flipped
     if (constrainPitch)

@@ -20,7 +20,7 @@ enum Camera_Movement
 // Default camera values
 static const float YAW = -90.0f;
 static const float PITCH = 0.0f;
-static const float SPEED = 2.5f;
+static const float SPEED = 5.0f;
 static const float SENSITIVITY = 0.1f;
 static const float ZOOM = 45.0f;
 
@@ -53,6 +53,7 @@ void init_camera(camera *cam);
 void get_view_matrix(mat4x4 m, camera cam);
 void camera_process_keyboard(camera *cam, enum Camera_Movement direction, float deltaTime);
 void process_mouse_movement(camera *cam, float x_offset, float y_offset, GLboolean constrainPitch);
+void process_mouse_movement_by_offset(camera *cam, float x_offset, float y_offset, GLboolean constrainPitch);
 void process_mouse_scroll(camera *cam, float y_offset);
 
 #endif

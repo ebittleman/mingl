@@ -47,21 +47,34 @@ void process_keyboard(GLFWwindow *window, float dt)
 double lastX, lastY;
 bool firstMouse = true;
 
-static void mouse_callback(GLFWwindow *window, double xpos, double ypos)
+static void mouse_callback(GLFWwindow *window, double x_pos, double y_pos)
 {
-    if (firstMouse)
-    {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
 
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;
-    lastX = xpos;
-    lastY = ypos;
+    float yaw = x_pos / (float)width;
+    float pitch = y_pos / (float)height;
 
-    process_mouse_movement(&cam, xoffset, yoffset, true);
+    yaw *= 720;
+    yaw -= 360;
+    pitch *= 178;
+    pitch -= 89;
+
+    // TODO: figure out how to make this smooth...probably some interpolation
+    process_mouse_movement(&cam, yaw, -pitch, true);
+
+    // if (firstMouse)
+    // {
+    //     lastX = x_pos;
+    //     lastY = y_pos;
+    //     firstMouse = false;
+    // }
+
+    // float x_offset = x_pos - lastX;
+    // float y_offset = lastY - y_pos;
+    // lastX = x_pos;
+    // lastY = y_pos;
+    // process_mouse_movement_by_offset(&cam, x_offset, y_offset, true);
 }
 
 static void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)

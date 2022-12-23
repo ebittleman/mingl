@@ -219,16 +219,16 @@ int init(GLFWwindow *window)
         current_scene->models = new_slice(sizeof(size_t));
         append_slice_size_t(&current_scene->models, models.len - 1);
 
-        model cube_model = {0};
-        cube(&cube_model, current_model->bounds, (Program *)shaders.data);
-        append_slice(&models, &cube_model);
-        append_slice_size_t(&current_scene->models, models.len - 1);
+        // model cube_model = {0};
+        // cube(&cube_model, current_model->bounds, (Program *)shaders.data);
+        // append_slice(&models, &cube_model);
+        // append_slice_size_t(&current_scene->models, models.len - 1);
     }
 
     glClearColor(.25, .25, .25, 1.0);
-    glPolygonMode(GL_FRONT, GL_LINE);
+    // glPolygonMode(GL_FRONT, GL_LINE);
     // glPolygonMode(GL_BACK, GL_LINE);
-    // glEnable(GL_CULL_FACE); // cull face
+    glEnable(GL_CULL_FACE); // cull face
     // glCullFace(GL_BACK);    // cull back face
     // glFrontFace(GL_CCW);    // GL_CCW for counter clock-wise
     glEnable(GL_DEPTH_TEST);
@@ -269,9 +269,9 @@ void calculate_model_position(mat4x4 destination_position, mat4x4 start_position
     // mat4x4_scale(destination_position, destination_position, 1.0f / 12.0f);
     // mat4x4_translate_in_place(destination_position, .1f, .2f, .5f);
 
-    mat4x4_rotate_X(destination_position, destination_position, time * TAU * .1);
-    mat4x4_rotate_Y(destination_position, destination_position, time * TAU * .1);
-    mat4x4_rotate_Z(destination_position, destination_position, time * TAU * .1);
+    // mat4x4_rotate_X(destination_position, destination_position, time * TAU * .1);
+    // mat4x4_rotate_Y(destination_position, destination_position, time * TAU * .1);
+    // mat4x4_rotate_Z(destination_position, destination_position, time * TAU * .1);
 
     // mat4x4_mul(destination_position, destination_position, start_position);
     // debug_mat(destination_position);
