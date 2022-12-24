@@ -52,23 +52,30 @@ typedef struct _mesh
     slice vertices;
     slice textures;
     float bounds[6];
-    Program *shader;
+    unsigned int vao;
 } mesh;
 
 typedef struct _model
 {
     slice meshes;
-    slice vaos;
     float bounds[6];
 } model;
 
-typedef struct _scene
+struct _scene
 {
     slice *models_table;
     slice models;
     mat4x4 position;
     mat4x4 current_position;
 
-} scene;
+    shader *shader;
+    void *parameters;
+
+    void (*init)(struct _scene *, size_t, size_t);
+    void (*update)(struct _scene *, size_t, size_t, float, float);
+    void (*draw)(struct _scene, shader);
+};
+
+typedef struct _scene scene;
 
 #endif

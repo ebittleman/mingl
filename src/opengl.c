@@ -16,7 +16,7 @@ void calculate_projection_matrix(GLFWwindow *window, mat4x4 *p, float degrees)
     ratio = width / (float)height;
 
     glViewport(0, 0, width, height);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     // mat4x4_ortho(*p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
     mat4x4_perspective(*p, radians(degrees), ratio, 0.1f, 1000.0f);
 }
@@ -77,9 +77,9 @@ static void mouse_callback(GLFWwindow *window, double x_pos, double y_pos)
     // process_mouse_movement_by_offset(&cam, x_offset, y_offset, true);
 }
 
-static void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
+static void scroll_callback(GLFWwindow *window, double x_offset, double y_offset)
 {
-    process_mouse_scroll(&cam, yoffset);
+    process_mouse_scroll(&cam, y_offset);
 }
 
 void _update_fps_counter(GLFWwindow *window, double current_seconds)
@@ -147,19 +147,19 @@ GLuint setup_mesh(mesh mesh)
     return vao;
 }
 
-void load_mesh_shader(Program *program, const char *vert_file, const char *frag_file)
+void load_mesh_shader(shader *program, const char *vert_file, const char *frag_file)
 {
     GLuint id = create_shader_program_from_files(vert_file, frag_file);
     program->id = id;
     program->vert_file = vert_file;
     program->frag_file = frag_file;
 
-    program->uniforms[U_MVP] = glGetUniformLocation(id, "mvp_matrix");
-    program->uniforms[U_MODEL] = glGetUniformLocation(id, "model_matrix");
-    program->uniforms[U_VIEW] = glGetUniformLocation(id, "view_matrix");
-    program->uniforms[U_PROJECTION] = glGetUniformLocation(id, "proj_matrix");
-    program->uniforms[U_CAM_POS] = glGetUniformLocation(id, "cam_pos");
-    program->uniforms[U_TIME] = glGetUniformLocation(id, "time");
+    program->uniforms[U_MVP] = glGetUniformLocation(id, UniformNames[U_MVP]);
+    program->uniforms[U_MODEL] = glGetUniformLocation(id, UniformNames[U_MODEL]);
+    program->uniforms[U_VIEW] = glGetUniformLocation(id, UniformNames[U_VIEW]);
+    program->uniforms[U_PROJECTION] = glGetUniformLocation(id, UniformNames[U_PROJECTION]);
+    program->uniforms[U_CAM_POS] = glGetUniformLocation(id, UniformNames[U_CAM_POS]);
+    program->uniforms[U_TIME] = glGetUniformLocation(id, UniformNames[U_TIME]);
 
     // buffer attributes
     for (int x = 0; x < VERTEX_PARAM_COUNT; x++)
@@ -168,39 +168,50 @@ void load_mesh_shader(Program *program, const char *vert_file, const char *frag_
     }
 }
 
-void render_mesh(Program shader, GLuint vao, mat4x4 vp, mat4x4 position, mesh mesh)
+void render_mesh(shader current_shader, mesh mesh)
 {
-    mat4x4 mvp;
-    mat4x4_mul(mvp, vp, position);
-
-    glUniformMatrix4fv(shader.uniforms[U_MVP], 1, GL_FALSE, (const GLfloat *)mvp);
-    glUniformMatrix4fv(shader.uniforms[U_MODEL], 1, GL_FALSE, (const GLfloat *)position);
-
-    glBindVertexArray(vao);
+    glBindVertexArray(mesh.vao);
     glDrawArrays(GL_TRIANGLES, 0, mesh.vertices.len);
     glBindVertexArray(0);
 }
 
-void render_model(mat4x4 vp, mat4x4 position, model model)
+void render_model(shader current_shader, model model)
 {
-    GLuint *vaos = (GLuint *)model.vaos.data;
     mesh *meshes = (mesh *)model.meshes.data;
-    for (size_t i = 0; i < model.vaos.len; i++)
+
+    for (size_t i = 0; i < model.meshes.len; i++)
     {
         // TODO: only render mesh if its on-screen
-        glUseProgram(meshes[i].shader->id);
-        render_mesh(*meshes[i].shader, vaos[i], vp, position, meshes[i]);
+        render_mesh(current_shader, meshes[i]);
     }
 }
 
-void render_scene(mat4x4 vp, scene scene)
+void render_scene(shader current_shader, mat4x4 vp, scene scene)
 {
     size_t *models_idx_data = (size_t *)scene.models.data;
     model *models_data = (model *)scene.models_table->data;
+
+    if (scene.shader != NULL)
+    {
+        current_shader = *scene.shader;
+    }
+
+    mat4x4 mvp;
+    mat4x4_mul(mvp, vp, scene.current_position);
+
+    glUseProgram(current_shader.id);
+    glUniformMatrix4fv(current_shader.uniforms[U_MVP], 1, GL_FALSE, (const GLfloat *)mvp);
+    glUniformMatrix4fv(current_shader.uniforms[U_MODEL], 1, GL_FALSE, (const GLfloat *)scene.current_position);
+
+    if (scene.draw != NULL)
+    {
+        scene.draw(scene, current_shader);
+    }
+
     for (size_t i = 0; i < scene.models.len; i++)
     {
         model current_model = models_data[models_idx_data[i]];
-        render_model(vp, scene.current_position, current_model);
+        render_model(current_shader, current_model);
     }
 }
 
@@ -211,7 +222,7 @@ void render(mat4x4 projection, camera cam, double time, slice shaders, slice sce
     get_view_matrix(view, cam);
     mat4x4_mul(vp, projection, view);
 
-    Program *shader_data = (Program *)shaders.data;
+    shader *shader_data = (shader *)shaders.data;
     for (size_t i = 0; i < shaders.len; i++)
     {
         glUseProgram(shader_data[i].id);
@@ -222,42 +233,12 @@ void render(mat4x4 projection, camera cam, double time, slice shaders, slice sce
         glUniform1f(shader_data[i].uniforms[U_TIME], (float)time);
     }
 
+    shader default_shader = shader_data[0];
     scene *scene_data = (scene *)scenes.data;
     for (size_t i = 0; i < scenes.len; i++)
     {
-        render_scene(vp, scene_data[i]);
+        render_scene(default_shader, vp, scene_data[i]);
     }
-}
-
-void render_object(
-    GLuint vertex_array,
-    size_t element_count,
-
-    Program program,
-    vec3 cam_pos,
-
-    mat4x4 proj,
-    mat4x4 view,
-    mat4x4 model,
-    double time)
-{
-
-    mat4x4 mvp;
-    mat4x4_mul(mvp, proj, view);
-    mat4x4_mul(mvp, mvp, model);
-
-    glUseProgram(program.id);
-
-    glUniformMatrix4fv(program.uniforms[U_MVP], 1, GL_FALSE, (const GLfloat *)&mvp);
-    glUniformMatrix4fv(program.uniforms[U_MODEL], 1, GL_FALSE, (const GLfloat *)model);
-    glUniformMatrix4fv(program.uniforms[U_VIEW], 1, GL_FALSE, (const GLfloat *)view);
-    glUniformMatrix4fv(program.uniforms[U_PROJECTION], 1, GL_FALSE, (const GLfloat *)proj);
-    glUniform3fv(program.uniforms[U_CAM_POS], 1, cam_pos);
-    glUniform1f(program.uniforms[U_TIME], (float)time);
-
-    glBindVertexArray(vertex_array);
-    glDrawArrays(GL_TRIANGLES, 0, element_count);
-    glBindVertexArray(0);
 }
 
 GLFWwindow *init_opengl(init_func_t *init_func)
@@ -311,6 +292,7 @@ void update_loop(GLFWwindow *window, update_func_t *update_func, slice shaders, 
     mat4x4 projection;
     while (!glfwWindowShouldClose(window))
     {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         static double previous_seconds = 0.0;
         double current_seconds = glfwGetTime();
@@ -331,3 +313,44 @@ void update_loop(GLFWwindow *window, update_func_t *update_func, slice shaders, 
     glfwDestroyWindow(window);
     glfwTerminate();
 }
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+// requires `glDrawArrays`
+// void calculate_normals_per_face(slice buffer_slices[COUNT_BUFFERS])
+// {
+
+//     reset_slice(&buffer_slices[NORMALS],
+//                 buffer_slices[VERTS].size,
+//                 buffer_slices[VERTS].len,
+//                 buffer_slices[VERTS].cap);
+
+//     vec3 *vertices = (vec3 *)buffer_slices[VERTS].data;
+//     vec3 *normals = (vec3 *)buffer_slices[NORMALS].data;
+
+//     vec3 normal, a, b;
+//     for (int x = 0; x < buffer_slices[VERTS].len; x += 3)
+//     {
+//         float *p1 = vertices[x];
+//         float *p2 = vertices[x + 1];
+//         float *p3 = vertices[x + 2];
+
+//         vec3_sub(a, p2, p1);
+//         vec3_sub(b, p3, p1);
+//         vec3_mul_cross(normal, a, b);
+
+//         float *n1 = normals[x];
+//         float *n2 = normals[x + 1];
+//         float *n3 = normals[x + 2];
+
+//         vec3_norm(normal, normal);
+
+//         vec3_dup(n1, normal);
+//         vec3_dup(n2, normal);
+//         vec3_dup(n3, normal);
+//     }
+
+//     return;
+// }

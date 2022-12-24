@@ -17,25 +17,8 @@ typedef void(update_func_t)(GLFWwindow *window, double time, double dt);
 
 GLFWwindow *init_opengl(init_func_t *init_func);
 
-void load_mesh_shader(Program *program, const char *vert_file, const char *frag_file);
+void load_mesh_shader(shader *program, const char *vert_file, const char *frag_file);
 GLuint setup_mesh(mesh mesh);
 void update_loop(GLFWwindow *window, update_func_t *update_func, slice shaders, slice scenes);
-
-typedef struct _vao
-{
-    GLuint id;
-    GLenum mode;
-    GLint first;
-    GLsizei count;
-} vao;
-
-typedef struct _shader
-{
-    GLuint id;
-    const char *vert_file;
-    const char *frag_file;
-    GLint *uniforms;
-    GLint *inputs;
-} shader;
 
 #endif

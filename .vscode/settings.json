@@ -40,7 +40,9 @@
         "unordered_set": "c",
         "vector": "c",
         "entities.h": "c",
-        "__bit_reference": "c"
+        "__bit_reference": "c",
+        "opengl.h": "c",
+        "scenes.h": "c"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",

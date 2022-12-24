@@ -8,6 +8,8 @@
 #include "data_structures.h"
 #include "linmath.h"
 
+#define TAU 6.28318530718
+
 enum Uniforms
 {
     U_MVP = 0,
@@ -19,13 +21,22 @@ enum Uniforms
     COUNT_UNIFORMS
 };
 
-typedef struct _program
+static const char *UniformNames[] = {
+    "mvp_matrix",
+    "model_matrix",
+    "view_matrix",
+    "proj_matrix",
+    "camera_pos",
+    "time",
+};
+
+typedef struct _shader
 {
     GLuint id;
     const char *vert_file;
     const char *frag_file;
     GLint *uniforms;
     GLint *input_locations;
-} Program;
+} shader;
 
 #endif
