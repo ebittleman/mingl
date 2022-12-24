@@ -56,7 +56,7 @@ void update_default_scene(scene *self, size_t x, size_t count, float dt, float t
     // mat4x4_identity(destination_position);
     // mat4x4_translate_in_place(destination_position, .1f, .2f, .5f);
 
-    float scale = (sinf(time * TAU * .1) + 1.1) * (params->x + 1);
+    float scale = (sinf(time * TAU * .25) + 1.1) * (params->x + 1);
 
     mat4x4_scale_aniso(S, S, scale, scale, scale);
 
