@@ -13,7 +13,6 @@
 #include "obj3d.h"
 #include "opengl.h"
 #include "entities.h"
-#include "cube.h"
 #include "linmath.h"
 #include "shaders.h"
 #include "types.h"
@@ -30,7 +29,7 @@ shader program;
 GLint uniforms[COUNT_UNIFORMS];
 GLint mesh_locations[VERTEX_PARAM_COUNT];
 
-static slice shaders, models, scenes;
+static slice shaders, meshes, models, scenes;
 
 string ASSET_DIR = "assets";
 static slice strings = {0, 0, sizeof(char), NULL};
@@ -64,34 +63,15 @@ int list_files(string dir_name, slice *files)
     return 0;
 }
 
-void cube(model *m, float bounds[6], shader *shader)
-{
-    vertex vertices[36];
-    cube_vertices(vertices, bounds);
-
-    mesh current_mesh;
-    current_mesh.vertices = new_slice(sizeof(vertex));
-    memcpy(current_mesh.bounds, bounds, sizeof(current_mesh.bounds));
-    extend_slice(&current_mesh.vertices, sizeof(vertices) / sizeof(vertex), vertices);
-
-    reset_slice(&m->meshes, sizeof(mesh), 0, 1);
-
-    current_mesh.vao = setup_mesh(current_mesh);
-    append_slice(&m->meshes, &current_mesh);
-
-    memcpy(m->bounds, bounds, sizeof(m->bounds));
-}
-
 int init(GLFWwindow *window)
 {
 
     shaders = new_slice(sizeof(shader));
+    meshes = new_slice(sizeof(mesh));
     models = new_slice(sizeof(model));
     scenes = new_slice(sizeof(scene));
 
-    scene empty_scene;
-
-    model empty_model = {0};
+    model empty_model = {&meshes, 0, 0};
     mesh empty_mesh = {0};
 
     shader default_shader;
@@ -110,43 +90,30 @@ int init(GLFWwindow *window)
 
     for (int x = 0; x < COUNT; x++)
     {
+
+        // load and send geometry to OpenGL
+        append_slice(&meshes, &empty_mesh);
+        mesh *current_mesh = (mesh *)get_slice_item(&meshes, meshes.len - 1);
+
         const char *filename = strings.data + idx[x];
-
-        append_slice(&models, &empty_model);
-
-        model *current_model = (model *)get_slice_item(&models, models.len - 1);
-        current_model->meshes = new_slice(sizeof(empty_mesh));
-
-        append_slice(&current_model->meshes, &empty_mesh);
-        mesh *current_mesh = &current_model->meshes.data[0];
-
         load_mesh(filename, current_mesh);
-
-        // send geometry to OpenGL
         current_mesh->vao = setup_mesh(*current_mesh);
-
         // todo: calculate normals, tangents, and bitangents for meshes
-        // if (!objects[x].buffer_slices[NORMALS].len)
-        // {
-        //     printf("Calculating normals for: %s\n", filename);
-        //     calculate_normals_per_face(objects[x].buffer_slices);
-        // }
 
+        // add the mesh to a new model
+        append_slice(&models, &empty_model);
+        model *current_model = (model *)get_slice_item(&models, models.len - 1);
+        current_model->meshes_idx = new_slice(sizeof(size_t));
+        append_slice_size_t(&current_model->meshes_idx, meshes.len - 1);
         memcpy(current_model->bounds, current_mesh->bounds, sizeof(current_mesh->bounds));
 
-        scene empty_scene = default_scene(&models, x);
+        // add the new model to a simple scene
+        scene empty_scene = default_scene(&models, x, COUNT, false);
         append_slice(&scenes, &empty_scene);
         scene *current_scene = (scene *)get_slice_item(&scenes, scenes.len - 1);
-
-        current_scene->models = new_slice(sizeof(size_t));
-        append_slice_size_t(&current_scene->models, models.len - 1);
-
-        // model cube_model = {0};
-        // cube(&cube_model, current_model->bounds, (shader *)shaders.data);
-        // append_slice(&models, &cube_model);
-        // append_slice_size_t(&current_scene->models, models.len - 1);
-
-        current_scene->init(current_scene, x, COUNT);
+        current_scene->models_idx = new_slice(sizeof(size_t));
+        append_slice_size_t(&current_scene->models_idx, models.len - 1);
+        current_scene->init(current_scene);
     }
 
     glClearColor(.25, .25, .25, 1.0);
@@ -193,7 +160,7 @@ void update(GLFWwindow *window, double time, double dt)
     for (int x = 0; x < scenes.len; x++)
     {
         scene *scene = &scene_data[x];
-        scene->update(scene, x, COUNT, dt, time);
+        scene->update(scene, dt, time);
     }
 }
 

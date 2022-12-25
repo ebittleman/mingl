@@ -4,11 +4,16 @@
 typedef struct _default_params
 {
     int x;
+    int count;
+    bool cube_enabled;
 } default_params;
 
-void init_default_scene(scene *self, size_t x, size_t count)
+void init_default_scene(scene *self)
 {
-    size_t *first_model_idx = (size_t *)get_slice_item(&self->models, 0);
+    default_params *params = (default_params *)self->parameters;
+    int x = params->x, count = params->count;
+
+    size_t *first_model_idx = (size_t *)get_slice_item(&self->models_idx, 0);
     model *first_model = (model *)get_slice_item(self->models_table, *first_model_idx);
     float *bounds = first_model->bounds;
 
@@ -34,7 +39,6 @@ void init_default_scene(scene *self, size_t x, size_t count)
         (ranges[1] / 2.0f - bounds[3]) * scale,
         (ranges[2] / 2.0f - bounds[5]) * scale);
 
-    // mat4x4_identity(m);
     mat4x4_identity(S);
     mat4x4_scale_aniso(S, S, scale, scale, scale);
     mat4x4_mul(self->position, self->position, S);
@@ -44,7 +48,7 @@ void init_default_scene(scene *self, size_t x, size_t count)
     // debug_vec3(ranges);
 }
 
-void update_default_scene(scene *self, size_t x, size_t count, float dt, float time)
+void update_default_scene(scene *self, float dt, float time)
 {
     default_params *params = (default_params *)self->parameters;
 
@@ -56,7 +60,7 @@ void update_default_scene(scene *self, size_t x, size_t count, float dt, float t
     // mat4x4_identity(destination_position);
     // mat4x4_translate_in_place(destination_position, .1f, .2f, .5f);
 
-    float scale = (sinf(time * TAU * .25) + 1.1) * (params->x + 1);
+    float scale = (sinf(time * TAU * .25) + 1.1) * ((params->x + params->count) / params->count);
 
     mat4x4_scale_aniso(S, S, scale, scale, scale);
 
@@ -74,12 +78,14 @@ void draw_default_scene(scene self, shader current_shader)
     // set any shader specific uniforms for this scene here
 }
 
-scene default_scene(slice *models_table, int x)
+scene default_scene(slice *models_table, int x, int count, bool display_bounds)
 {
     scene result = {0};
 
     default_params *params = malloc(sizeof(default_params));
     params->x = x;
+    params->count = count;
+    params->cube_enabled = display_bounds;
 
     result.models_table = models_table;
     result.init = &init_default_scene;

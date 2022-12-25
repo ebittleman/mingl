@@ -57,22 +57,23 @@ typedef struct _mesh
 
 typedef struct _model
 {
-    slice meshes;
+    slice *meshes_table;
+    slice meshes_idx;
     float bounds[6];
 } model;
 
 struct _scene
 {
     slice *models_table;
-    slice models;
+    slice models_idx;
     mat4x4 position;
     mat4x4 current_position;
 
     shader *shader;
     void *parameters;
 
-    void (*init)(struct _scene *, size_t, size_t);
-    void (*update)(struct _scene *, size_t, size_t, float, float);
+    void (*init)(struct _scene *);
+    void (*update)(struct _scene *, float, float);
     void (*draw)(struct _scene, shader);
 };
 

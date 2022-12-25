@@ -1,5 +1,6 @@
 add_executable(mingl main.c)
 
+add_subdirectory(geometry)
 add_subdirectory(scenes)
 
 FILE(GLOB SOURCES *.c)

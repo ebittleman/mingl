@@ -177,18 +177,19 @@ void render_mesh(shader current_shader, mesh mesh)
 
 void render_model(shader current_shader, model model)
 {
-    mesh *meshes = (mesh *)model.meshes.data;
+    size_t *mesh_id = (size_t *)model.meshes_idx.data;
+    mesh *meshes_data = (mesh *)model.meshes_table->data;
 
-    for (size_t i = 0; i < model.meshes.len; i++)
+    for (size_t i = 0; i < model.meshes_idx.len; i++)
     {
         // TODO: only render mesh if its on-screen
-        render_mesh(current_shader, meshes[i]);
+        render_mesh(current_shader, meshes_data[mesh_id[i]]);
     }
 }
 
 void render_scene(shader current_shader, mat4x4 vp, scene scene)
 {
-    size_t *models_idx_data = (size_t *)scene.models.data;
+    size_t *models_idx_data = (size_t *)scene.models_idx.data;
     model *models_data = (model *)scene.models_table->data;
 
     if (scene.shader != NULL)
@@ -208,7 +209,7 @@ void render_scene(shader current_shader, mat4x4 vp, scene scene)
         scene.draw(scene, current_shader);
     }
 
-    for (size_t i = 0; i < scene.models.len; i++)
+    for (size_t i = 0; i < scene.models_idx.len; i++)
     {
         model current_model = models_data[models_idx_data[i]];
         render_model(current_shader, current_model);

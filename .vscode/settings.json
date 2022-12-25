@@ -42,7 +42,8 @@
         "entities.h": "c",
         "__bit_reference": "c",
         "opengl.h": "c",
-        "scenes.h": "c"
+        "scenes.h": "c",
+        "geometry.h": "c"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",
