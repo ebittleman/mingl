@@ -7,6 +7,13 @@
 typedef void(line_callback_t)(slice *, char *);
 typedef size_t size_t3[3];
 
+typedef struct _face_elements
+{
+    size_t position_idx, texture_idx, normal_idx;
+} face_elements;
+
+typedef face_elements face[3];
+
 enum Buffers
 {
     VERTS = 0,
@@ -16,15 +23,7 @@ enum Buffers
     COUNT_BUFFERS
 };
 
-enum FaceMetadata
-{
-    FACE_VERTS = 0,
-    FACE_UVS,
-    FACE_NORMALS,
-    COUNT_FACE_METADATA
-};
-
-void sscanf_face(char *line, size_t len, size_t vertex_count, size_t3 data[]);
+void sscanf_face(char *line, size_t len, size_t vertex_count, face_elements data[]);
 
 void parse_vec2_line(slice *vec2_data, char *line);
 void parse_vec3_line(slice *vec3_data, char *line);
@@ -40,7 +39,7 @@ int line_reader(
     line_callback_t *callbacks[COUNT_BUFFERS],
     slice *buffers[COUNT_BUFFERS]);
 
-void faces_to_elements(slice *elements, size_t n, size_t3 face_data[]);
+void faces_to_elements(slice *elements, size_t n, face_elements face_data[]);
 
 void calculate_normal_per_vertex(slice buffer_slices[COUNT_BUFFERS]);
 void load_mesh(const char *obj_file_name, mesh *mesh);

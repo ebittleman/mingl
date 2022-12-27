@@ -23,8 +23,25 @@ void reset_slice(slice *s, int size, int len, int cap);
 void append_slice(slice *s, void *item);
 void append_slice_size_t(slice *s, size_t value);
 
-void debug_vec3(vec3 v);
-void debug_mat(mat4x4 m);
-void debug_bounds(float bounds[6]);
+#define DEFINE_SLICE_TYPE(type)                                                               \
+    typedef struct _##type##_slice                                                            \
+    {                                                                                         \
+        size_t len;                                                                           \
+        const type *data;                                                                     \
+        slice *backing_slice;                                                                 \
+    } type##_slice;                                                                           \
+    static type##_slice slice_##type##_slice(slice *src, size_t start_idx, size_t end_offset) \
+    {                                                                                         \
+        const char *data = (const char *)src->data;                                           \
+        size_t start = start_idx * src->size;                                                 \
+        type##_slice dst = {                                                                  \
+            end_offset - start_idx,                                                           \
+            (type *)(data + start),                                                           \
+            src};                                                                             \
+        return dst;                                                                           \
+    }
+
+DEFINE_SLICE_TYPE(char);
+DEFINE_SLICE_TYPE(size_t);
 
 #endif

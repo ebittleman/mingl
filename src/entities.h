@@ -41,6 +41,12 @@ typedef struct _vertex
     int bone_weight[MAX_BONE_INFLUENCE];
 } vertex;
 
+DEFINE_SLICE_TYPE(vertex);
+
+typedef vertex triangle[3];
+
+DEFINE_SLICE_TYPE(triangle);
+
 typedef struct _texture
 {
     unsigned int id;
@@ -55,12 +61,16 @@ typedef struct _mesh
     unsigned int vao;
 } mesh;
 
+DEFINE_SLICE_TYPE(mesh);
+
 typedef struct _model
 {
     slice *meshes_table;
     slice meshes_idx;
     float bounds[6];
 } model;
+
+DEFINE_SLICE_TYPE(model);
 
 struct _scene
 {
@@ -78,5 +88,7 @@ struct _scene
 };
 
 typedef struct _scene scene;
+
+DEFINE_SLICE_TYPE(scene);
 
 #endif

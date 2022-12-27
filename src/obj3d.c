@@ -126,7 +126,7 @@ void handle_uv_line(slice *uv_data, char *line)
     parse_vec2_line(uv_data, line + 2);
 }
 
-void sscanf_face(char *line, size_t len, size_t vertex_count, size_t3 data[])
+void sscanf_face(char *line, size_t len, size_t vertex_count, face_elements data[])
 {
     char string_buffer[256];
     char *cursor = line, *end = NULL;
@@ -142,15 +142,15 @@ void sscanf_face(char *line, size_t len, size_t vertex_count, size_t3 data[])
         string_buffer[end - cursor] = '\0';
 
         if (sscanf(string_buffer, "%llu/%llu/%llu",
-                   &data[i][FACE_VERTS], &data[i][FACE_UVS], &data[i][FACE_NORMALS]) != 3)
+                   &data[i].position_idx, &data[i].texture_idx, &data[i].normal_idx) != 3)
         {
-            data[i][FACE_NORMALS] = 0;
-            if (sscanf(string_buffer, "%llu/%llu/", &data[i][FACE_VERTS], &data[i][FACE_UVS]) != 2)
+            data[i].normal_idx = 0;
+            if (sscanf(string_buffer, "%llu/%llu/", &data[i].position_idx, &data[i].texture_idx) != 2)
             {
-                data[i][FACE_UVS] = 0;
-                if (sscanf(string_buffer, "%llu//%llu", &data[i][FACE_VERTS], &data[i][FACE_NORMALS]) != 2)
+                data[i].texture_idx = 0;
+                if (sscanf(string_buffer, "%llu//%llu", &data[i].position_idx, &data[i].normal_idx) != 2)
                 {
-                    sscanf(string_buffer, "%llu//", &data[i][FACE_VERTS]);
+                    sscanf(string_buffer, "%llu//", &data[i].position_idx);
                 }
             }
         }
@@ -159,42 +159,29 @@ void sscanf_face(char *line, size_t len, size_t vertex_count, size_t3 data[])
     }
 }
 
-void faces_to_elements(slice *elements, size_t n, size_t3 face_data[])
+void faces_to_elements(slice *elements, size_t n, face_elements face_data[])
 {
-    int iters = n - 2;
+    static const size_t face_elements_size = sizeof(face_elements) / sizeof(size_t);
 
     for (int x = 0; x < n; x++)
     {
-        face_data[x][FACE_VERTS] = face_data[x][FACE_VERTS] - 1;
-        face_data[x][FACE_UVS] = face_data[x][FACE_UVS] - 1;
-        face_data[x][FACE_NORMALS] = face_data[x][FACE_NORMALS] - 1;
+        face_data[x].position_idx = face_data[x].position_idx - 1;
+        face_data[x].texture_idx = face_data[x].texture_idx - 1;
+        face_data[x].normal_idx = face_data[x].normal_idx - 1;
     }
 
-    if (iters <= 0)
+    extend_slice(elements, face_elements_size, &face_data[0]);
+    extend_slice(elements, face_elements_size, &face_data[1]);
+    extend_slice(elements, face_elements_size, &face_data[2]);
+
+    int iters = n - 2;
+    for (int x = 1; x < iters; x++)
     {
+        int offset = x + 1;
 
-        extend_slice(elements, COUNT_FACE_METADATA, face_data[0]);
-        extend_slice(elements, COUNT_FACE_METADATA, face_data[1]);
-        extend_slice(elements, COUNT_FACE_METADATA, face_data[2]);
-        return;
-    }
-
-    for (int x = 0; x < iters; x++)
-    {
-        if (x == 0)
-        {
-            extend_slice(elements, COUNT_FACE_METADATA, face_data[0]);
-            extend_slice(elements, COUNT_FACE_METADATA, face_data[1]);
-            extend_slice(elements, COUNT_FACE_METADATA, face_data[2]);
-        }
-        else
-        {
-            int offset = x + 1;
-
-            extend_slice(elements, COUNT_FACE_METADATA, face_data[0]);
-            extend_slice(elements, COUNT_FACE_METADATA, face_data[offset]);
-            extend_slice(elements, COUNT_FACE_METADATA, face_data[offset + 1]);
-        }
+        extend_slice(elements, face_elements_size, &face_data[0]);
+        extend_slice(elements, face_elements_size, &face_data[offset]);
+        extend_slice(elements, face_elements_size, &face_data[offset + 1]);
     }
 
     return;
@@ -211,7 +198,7 @@ void parse_face_line(slice *element_data, char *line)
     }
     vertex_count += 1;
 
-    size_t3 data[vertex_count];
+    face_elements data[vertex_count];
     sscanf_face(line, len, vertex_count, data);
     faces_to_elements(element_data, vertex_count, data);
 }
@@ -235,32 +222,35 @@ void calculate_normal_per_vertex(slice buffer_slices[COUNT_BUFFERS])
                 buffer_slices[VERTS].len,
                 buffer_slices[VERTS].cap);
 
-    size_t *elements = (size_t *)buffer_slices[ELEMENTS].data;
+    face *faces = (face *)buffer_slices[ELEMENTS].data;
+    size_t num_faces = buffer_slices[ELEMENTS].len / 9;
     vec3 *vertices = (vec3 *)buffer_slices[VERTS].data;
     vec3 *normals = (vec3 *)buffer_slices[NORMALS].data;
 
     vec3 normal, a, b;
-    for (int x = 0; x < buffer_slices[ELEMENTS].len; x += 9)
+    for (int i = 0; i < num_faces; i++)
     {
-        float *p1 = vertices[elements[x + FACE_VERTS]];
-        float *p2 = vertices[elements[x + 3 + FACE_VERTS]];
-        float *p3 = vertices[elements[x + 6 + FACE_VERTS]];
+        face_elements *current_face = (face_elements *)faces[i];
+
+        float *p1 = vertices[current_face[0].position_idx];
+        float *p2 = vertices[current_face[1].position_idx];
+        float *p3 = vertices[current_face[2].position_idx];
 
         vec3_sub(a, p2, p1);
         vec3_sub(b, p3, p1);
         vec3_mul_cross(normal, a, b);
 
-        float *n1 = normals[elements[x + FACE_VERTS]];
-        float *n2 = normals[elements[x + 3 + FACE_VERTS]];
-        float *n3 = normals[elements[x + 6 + FACE_VERTS]];
+        float *n1 = normals[current_face[0].position_idx];
+        float *n2 = normals[current_face[1].position_idx];
+        float *n3 = normals[current_face[2].position_idx];
 
         vec3_add(n1, n1, normal);
         vec3_add(n2, n2, normal);
         vec3_add(n3, n3, normal);
 
-        elements[x + FACE_NORMALS] = elements[x + FACE_VERTS];
-        elements[x + 3 + FACE_NORMALS] = elements[x + 3 + FACE_VERTS];
-        elements[x + 6 + FACE_NORMALS] = elements[x + 6 + FACE_VERTS];
+        current_face[0].normal_idx = current_face[0].position_idx;
+        current_face[1].normal_idx = current_face[1].position_idx;
+        current_face[2].normal_idx = current_face[2].position_idx;
     }
 
     for (int x = 0; x < buffer_slices[NORMALS].len / 3; x++)
@@ -315,7 +305,7 @@ void load_mesh(const char *obj_file_name, mesh *mesh)
     slice buffers[COUNT_BUFFERS];
     load_obj_file(obj_file_name, buffers);
 
-    size_t *elements = (size_t *)buffers[ELEMENTS].data;
+    face *faces = (face *)buffers[ELEMENTS].data;
     vec3 *vertices_index = (vec3 *)buffers[VERTS].data;
     vec3 *normal_index = (vec3 *)buffers[NORMALS].data;
     vec2 *uv_index = (vec2 *)buffers[UVS].data;
@@ -362,66 +352,76 @@ void load_mesh(const char *obj_file_name, mesh *mesh)
     mesh->bounds[5] += to_local_origin[2];
 
     vertex vert = {0};
-    uintptr_t position_offset = offsetof(vertex, position);
     size_t position_size = sizeof(vert.position);
-
-    uintptr_t normal_offset = offsetof(vertex, normal);
     size_t normal_size = sizeof(vert.normal);
-
-    uintptr_t uv_offset = offsetof(vertex, uv);
     size_t uv_size = sizeof(vert.uv);
 
-    size_t vertices_len = buffers[ELEMENTS].len / 3;
-    size_t vertices_cap = vertices_len * sizeof(vertex);
-    slice vertices_slice = {
-        vertices_len,
-        vertices_cap,
-        sizeof(vertex),
-        malloc(vertices_cap)};
-    memset(vertices_slice.data, 0, vertices_cap);
+    size_t num_faces = buffers[ELEMENTS].len / 9;
+    size_t triangles_cap = sizeof(triangle) * num_faces;
+    triangle *triangles = malloc(triangles_cap);
+    memset(triangles, 0, triangles_cap);
 
-    int step;
-    vertex *vertices = (vertex *)vertices_slice.data;
-    for (int x = 0; x < buffers[ELEMENTS].len; x += 9)
+    for (int i = 0; i < num_faces; i++)
     {
+        face_elements *current_face = (face_elements *)faces[i];
+        vertex *current_triangle = (vertex *)triangles[i];
 
-        step = x / 3;
+        size_t v1_idx = current_face[0].position_idx,
+               v2_idx = current_face[1].position_idx,
+               v3_idx = current_face[2].position_idx;
 
-        size_t idx1_src = elements[x + 0 + FACE_VERTS];
-        vec3 *v1_src = &vertices_index[idx1_src];
-        size_t idx2_src = elements[x + 3 + FACE_VERTS];
-        vec3 *v2_src = &vertices_index[idx2_src];
-        size_t idx3_src = elements[x + 6 + FACE_VERTS];
-        vec3 *v3_src = &vertices_index[idx3_src];
+        vertex *vert1 = (vertex *)&current_triangle[0],
+               *vert2 = (vertex *)&current_triangle[1],
+               *vert3 = (vertex *)&current_triangle[2];
 
-        memcpy(((void *)&vertices[0 + step]) + position_offset, vertices_index[elements[x + FACE_VERTS]], position_size);
-        memcpy(((void *)&vertices[1 + step]) + position_offset, vertices_index[elements[x + 3 + FACE_VERTS]], position_size);
-        memcpy(((void *)&vertices[2 + step]) + position_offset, vertices_index[elements[x + 6 + FACE_VERTS]], position_size);
+        memcpy(vert1->position, vertices_index[v1_idx], position_size);
+        memcpy(vert2->position, vertices_index[v2_idx], position_size);
+        memcpy(vert3->position, vertices_index[v3_idx], position_size);
     }
 
     if (buffers[NORMALS].len)
     {
-        for (int x = 0; x < buffers[ELEMENTS].len; x += 9)
+        for (int i = 0; i < num_faces; i++)
         {
-            step = x / 3;
-            memcpy(((void *)&vertices[0 + step]) + normal_offset, normal_index[elements[x + FACE_NORMALS]], normal_size);
-            memcpy(((void *)&vertices[1 + step]) + normal_offset, normal_index[elements[x + 3 + FACE_NORMALS]], normal_size);
-            memcpy(((void *)&vertices[2 + step]) + normal_offset, normal_index[elements[x + 6 + FACE_NORMALS]], normal_size);
+            face_elements *current_face = (face_elements *)faces[i];
+            vertex *current_triangle = (vertex *)triangles[i];
+
+            size_t n1_idx = current_face[0].normal_idx,
+                   n2_idx = current_face[1].normal_idx,
+                   n3_idx = current_face[2].normal_idx;
+
+            vertex *vert1 = (vertex *)&current_triangle[0],
+                   *vert2 = (vertex *)&current_triangle[1],
+                   *vert3 = (vertex *)&current_triangle[2];
+
+            memcpy(vert1->normal, normal_index[n1_idx], normal_size);
+            memcpy(vert2->normal, normal_index[n2_idx], normal_size);
+            memcpy(vert3->normal, normal_index[n3_idx], normal_size);
         }
     }
 
     if (buffers[UVS].len)
     {
-        for (int x = 0; x < buffers[ELEMENTS].len; x += 9)
+        for (int i = 0; i < num_faces; i++)
         {
-            step = x / 3;
-            memcpy(((void *)&vertices[0 + step]) + uv_offset, uv_index[elements[x + FACE_UVS]], uv_size);
-            memcpy(((void *)&vertices[1 + step]) + uv_offset, uv_index[elements[x + 3 + FACE_UVS]], uv_size);
-            memcpy(((void *)&vertices[2 + step]) + uv_offset, uv_index[elements[x + 6 + FACE_UVS]], uv_size);
+            face_elements *current_face = (face_elements *)faces[i];
+            vertex *current_triangle = (vertex *)triangles[i];
+
+            size_t text1_idx = current_face[0].texture_idx,
+                   text2_idx = current_face[1].texture_idx,
+                   text3_idx = current_face[2].texture_idx;
+
+            vertex *vert1 = (vertex *)&current_triangle[0],
+                   *vert2 = (vertex *)&current_triangle[1],
+                   *vert3 = (vertex *)&current_triangle[2];
+
+            memcpy(vert1->uv, uv_index[text1_idx], uv_size);
+            memcpy(vert2->uv, uv_index[text2_idx], uv_size);
+            memcpy(vert3->uv, uv_index[text3_idx], uv_size);
         }
     }
 
-    mesh->vertices = vertices_slice;
+    mesh->vertices = (slice){num_faces * 3, triangles_cap, sizeof(vertex), triangles};
 
     free_buffers(buffers);
 }

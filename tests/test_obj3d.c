@@ -35,7 +35,7 @@ int test_sscanf_face(char *error_buffer)
 
     size_t len = strlen(line) - 2;
     size_t vertex_count = sizeof(expected_data) / sizeof(size_t) / 3;
-    size_t3 actual_data[vertex_count];
+    face_elements actual_data[vertex_count];
 
     sscanf_face(line + 2, len, vertex_count, actual_data);
 
@@ -44,8 +44,8 @@ int test_sscanf_face(char *error_buffer)
         sprintf(error_buffer, "Unexpected data found parsing element line");
         for (size_t i = 0; i < vertex_count; i++)
         {
-            size_t *data = actual_data[i];
-            printf("%llu, %llu, %llu\n", data[0], data[1], data[2]);
+            face_elements data = actual_data[i];
+            printf("%llu, %llu, %llu\n", data.position_idx, data.texture_idx, data.normal_idx);
         }
 
         return 1;
