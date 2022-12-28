@@ -56,9 +56,9 @@ static void debug_mat(mat4x4 m)
 
 static void debug_bounds(float bounds[6])
 {
-    printf("x:%f = %f - %f\n", bounds[1] - bounds[0], bounds[1], bounds[0]);
-    printf("y:%f = %f - %f\n", bounds[3] - bounds[2], bounds[3], bounds[2]);
-    printf("z:%f = %f - %f\n", bounds[5] - bounds[4], bounds[5], bounds[4]);
+    printf("x:%f = %f - %f\n", bounds[3] - bounds[0], bounds[3], bounds[0]);
+    printf("y:%f = %f - %f\n", bounds[4] - bounds[1], bounds[4], bounds[1]);
+    printf("z:%f = %f - %f\n", bounds[5] - bounds[2], bounds[5], bounds[2]);
 }
 
 #endif

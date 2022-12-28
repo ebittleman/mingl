@@ -73,19 +73,16 @@ fail:
 
 void parse_vec3_line(slice *vec3_data, char *line)
 {
-    float x, y, z;
-    sscanf(line, "%f %f %f", &x, &y, &z);
-    append_slice(vec3_data, &x);
-    append_slice(vec3_data, &y);
-    append_slice(vec3_data, &z);
+    vec3 position;
+    sscanf(line, "%f %f %f", &position[0], &position[1], &position[2]);
+    extend_slice(vec3_data, 3, position);
 }
 
 void parse_vec2_line(slice *vec2_data, char *line)
 {
-    float u, v;
-    sscanf(line, "%f %f", &u, &v);
-    append_slice(vec2_data, &u);
-    append_slice(vec2_data, &v);
+    vec2 uv;
+    sscanf(line, "%f %f", &uv[0], &uv[1]);
+    extend_slice(vec2_data, 2, uv);
 }
 
 void handle_noop(slice *any_data, char *line)
@@ -300,6 +297,33 @@ void free_buffers(slice buffers[COUNT_BUFFERS])
     }
 }
 
+static inline void bounding_box(float bounds[6], int n, vec3 *vertices)
+{
+    vec3 *min_max = (vec3 *)bounds;
+
+    min_max[0][0] = vertices[0][0];
+    min_max[0][1] = vertices[0][1];
+    min_max[0][2] = vertices[0][2];
+    min_max[1][0] = vertices[0][0];
+    min_max[1][1] = vertices[0][1];
+    min_max[1][2] = vertices[0][2];
+
+    for (size_t i = 1; i < n; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            if (vertices[i][j] < min_max[0][j])
+            {
+                min_max[0][j] = vertices[i][j];
+            }
+            if (vertices[i][j] > min_max[1][j])
+            {
+                min_max[1][j] = vertices[i][j];
+            }
+        }
+    }
+}
+
 void load_mesh(const char *obj_file_name, mesh *mesh)
 {
     slice buffers[COUNT_BUFFERS];
@@ -312,44 +336,20 @@ void load_mesh(const char *obj_file_name, mesh *mesh)
 
     // TODO: find somewhere else for measuring bounding box
     int num_verts = buffers[VERTS].len / 3;
-    mesh->bounds[0] = vertices_index[0][0];
-    mesh->bounds[1] = vertices_index[0][0];
-    mesh->bounds[2] = vertices_index[0][1];
-    mesh->bounds[3] = vertices_index[0][1];
-    mesh->bounds[4] = vertices_index[0][2];
-    mesh->bounds[5] = vertices_index[0][2];
-    for (size_t i = 1; i < num_verts; i++)
-    {
-        for (int y = 0; y < 3; y++)
-        {
-            int offset = y * 2;
-            if (vertices_index[i][y] < mesh->bounds[offset])
-            {
-                mesh->bounds[offset] = vertices_index[i][y];
-            }
-            else if (vertices_index[i][y] > mesh->bounds[offset + 1])
-            {
-                mesh->bounds[offset + 1] = vertices_index[i][y];
-            }
-        }
-    }
+    bounding_box(mesh->bounds, num_verts, vertices_index);
 
     vec3 to_local_origin = {
-        ((mesh->bounds[1] - mesh->bounds[0]) / 2) - mesh->bounds[1],
-        ((mesh->bounds[3] - mesh->bounds[2]) / 2) - mesh->bounds[3],
-        ((mesh->bounds[5] - mesh->bounds[4]) / 2) - mesh->bounds[5],
+        ((mesh->bounds[3] - mesh->bounds[0]) / 2) - mesh->bounds[3],
+        ((mesh->bounds[4] - mesh->bounds[1]) / 2) - mesh->bounds[4],
+        ((mesh->bounds[5] - mesh->bounds[2]) / 2) - mesh->bounds[5],
     };
 
     for (size_t i = 0; i < buffers[VERTS].len / 3; i++)
     {
         vec3_add(vertices_index[i], vertices_index[i], to_local_origin);
     }
-    mesh->bounds[0] += to_local_origin[0];
-    mesh->bounds[1] += to_local_origin[0];
-    mesh->bounds[2] += to_local_origin[1];
-    mesh->bounds[3] += to_local_origin[1];
-    mesh->bounds[4] += to_local_origin[2];
-    mesh->bounds[5] += to_local_origin[2];
+    vec3_add(mesh->bounds, mesh->bounds, to_local_origin);
+    vec3_add(&mesh->bounds[3], &mesh->bounds[3], to_local_origin);
 
     vertex vert = {0};
     size_t position_size = sizeof(vert.position);

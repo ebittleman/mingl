@@ -19,9 +19,9 @@ void init_default_scene(scene *self)
 
     mat4x4 S, T;
     float ranges[3] = {
-        bounds[1] - bounds[0],
-        bounds[3] - bounds[2],
-        bounds[5] - bounds[4],
+        bounds[3] - bounds[0],
+        bounds[4] - bounds[1],
+        bounds[5] - bounds[2],
     };
     float max = ranges[0];
     for (int x = 1; x < 3; x++)
@@ -35,8 +35,8 @@ void init_default_scene(scene *self)
     float scale = 1.0f / max;
     mat4x4_translate( // starts with identity matrix then sets translation
         self->position,
-        ((ranges[0] / 2.0f - bounds[1]) * scale) + ((float)x * 2) - (float)count,
-        (ranges[1] / 2.0f - bounds[3]) * scale,
+        ((ranges[0] / 2.0f - bounds[3]) * scale) + ((float)x * 2) - (float)count,
+        (ranges[1] / 2.0f - bounds[4]) * scale,
         (ranges[2] / 2.0f - bounds[5]) * scale);
 
     mat4x4_identity(S);

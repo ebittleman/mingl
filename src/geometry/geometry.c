@@ -3,9 +3,9 @@
 
 void cube_vertices(vertex dst[36], float bounds[6])
 {
-    float minX = bounds[0], maxX = bounds[1],
-          minY = bounds[2], maxY = bounds[3],
-          minZ = bounds[4], maxZ = bounds[5];
+    float minX = bounds[0], maxX = bounds[3],
+          minY = bounds[1], maxY = bounds[4],
+          minZ = bounds[2], maxZ = bounds[5];
     vertex vertices[] = {
         // front face
         {minX, minY, maxZ,
