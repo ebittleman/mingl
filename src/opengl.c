@@ -165,12 +165,10 @@ void load_mesh_shader(shader *program, const char *vert_file, const char *frag_f
     program->vert_file = vert_file;
     program->frag_file = frag_file;
 
-    program->uniforms[U_MVP] = glGetUniformLocation(id, UniformNames[U_MVP]);
-    program->uniforms[U_MODEL] = glGetUniformLocation(id, UniformNames[U_MODEL]);
-    program->uniforms[U_VIEW] = glGetUniformLocation(id, UniformNames[U_VIEW]);
-    program->uniforms[U_PROJECTION] = glGetUniformLocation(id, UniformNames[U_PROJECTION]);
-    program->uniforms[U_CAM_POS] = glGetUniformLocation(id, UniformNames[U_CAM_POS]);
-    program->uniforms[U_TIME] = glGetUniformLocation(id, UniformNames[U_TIME]);
+    for (size_t i = 0; i < COUNT_UNIFORMS; i++)
+    {
+        program->uniforms[i] = glGetUniformLocation(id, UniformNames[i]);
+    }
 
     // buffer attributes
     for (int x = 0; x < VERTEX_PARAM_COUNT; x++)
@@ -192,6 +190,14 @@ void render_model(shader current_shader, model model, void *parameters)
     if (model.shader != NULL)
     {
         current_shader = *model.shader;
+    }
+
+    if (model.material != NULL)
+    {
+        glUniform3fv(current_shader.uniforms[U_MATERIAL_AMBIENT], 1, model.material->ambient);
+        glUniform3fv(current_shader.uniforms[U_MATERIAL_DIFFUSE], 1, model.material->diffuse);
+        glUniform3fv(current_shader.uniforms[U_MATERIAL_SPECULAR], 1, model.material->specular);
+        glUniform1f(current_shader.uniforms[U_MATERIAL_SHININESS], model.material->shininess);
     }
 
     current_shader.draw(current_shader, parameters);
@@ -217,9 +223,17 @@ void render_scene(shader current_shader, mat4x4 vp, scene scene)
     mat4x4 mvp;
     mat4x4_mul(mvp, vp, scene.current_position);
 
+    mat3x3 normal_matrix;
+    mat4x4 inverse_model;
+    mat4x4 transpose_model;
+    mat4x4_invert(inverse_model, scene.current_position);
+    mat4x4_invert(transpose_model, inverse_model);
+    mat3x3_from_4x4(normal_matrix, transpose_model);
+
     glUseProgram(current_shader.id);
     glUniformMatrix4fv(current_shader.uniforms[U_MVP], 1, GL_FALSE, (const GLfloat *)mvp);
     glUniformMatrix4fv(current_shader.uniforms[U_MODEL], 1, GL_FALSE, (const GLfloat *)scene.current_position);
+    glUniformMatrix3fv(current_shader.uniforms[U_NORMAL_MATRIX], 1, GL_FALSE, (const GLfloat *)normal_matrix);
 
     if (scene.draw != NULL)
     {
@@ -256,7 +270,7 @@ void render(mat4x4 projection, camera cam, double time, slice shaders, slice sce
 
         glUniformMatrix4fv(shader_data[i].uniforms[U_VIEW], 1, GL_FALSE, (const GLfloat *)&view);
         glUniformMatrix4fv(shader_data[i].uniforms[U_PROJECTION], 1, GL_FALSE, (const GLfloat *)&projection);
-        glUniform3fv(shader_data[i].uniforms[U_CAM_POS], 1, cam.position);
+        glUniform3fv(shader_data[i].uniforms[U_VIEW_POSITION], 1, cam.position);
         glUniform1f(shader_data[i].uniforms[U_TIME], (float)time);
     }
 
@@ -338,9 +352,10 @@ void update_loop(GLFWwindow *window, update_func_t *update_func, slice shaders, 
 
         _update_fps_counter(window, current_seconds);
         process_keyboard(window, dt);
-        calculate_projection_matrix(window, &projection, cam.zoom);
 
+        calculate_projection_matrix(window, &projection, cam.zoom);
         update_func(window, current_seconds, dt);
+
         render(projection, cam, current_seconds, shaders, scenes);
 
         glfwSwapBuffers(window);

@@ -286,3 +286,9 @@ mesh cube(float bounds[6])
 
     return current_mesh;
 }
+
+mesh unit_cube()
+{
+    return cube((float[]){-0.5f, -0.5f, -0.5f,
+                          0.5f, 0.5f, 0.5f});
+}

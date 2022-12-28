@@ -9,6 +9,16 @@
 
 typedef const char *string;
 
+typedef struct _light
+{
+    vec3 position;
+    vec3 color;
+
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+} light;
+
 static void debug_vec3(vec3 v)
 {
     printf("x: %f, y: %f, z: %f\n", v[0], v[1], v[2]);

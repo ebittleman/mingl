@@ -25,7 +25,18 @@ INITIALIZE_ENTITY_STORAGE()
 const char *default_vert_file = "src/shaders/default/default.vert";
 const char *default_frag_file = "src/shaders/default/default.frag";
 
-static shader default_shader;
+const char *directional_light_vert_file = "src/shaders/directional_light/directional_light.vert";
+const char *directional_light_frag_file = "src/shaders/directional_light/directional_light.frag";
+
+light positional_light = {
+    {0.0f, 5.0f, 5.f},
+    {1.0f, 1.0f, 1.0f},
+    {0.5f, 0.5f, 0.5f},
+    {0.8f, 0.8f, 0.8f},
+    {1.0f, 1.0f, 1.0f},
+};
+
+static shader default_shader, directional_light_shader;
 GLint uniforms[COUNT_UNIFORMS];
 GLint mesh_locations[VERTEX_PARAM_COUNT];
 
@@ -41,11 +52,20 @@ int init(GLFWwindow *window)
     create_entity_tables();
 
     shaders = new_slice(sizeof(shader));
+
+    // default shader
     default_shader = (shader){0};
     default_shader.uniforms = uniforms;
     default_shader.input_locations = mesh_locations;
     load_mesh_shader(&default_shader, default_vert_file, default_frag_file);
     append_slice(&shaders, &default_shader);
+
+    // directional light shader
+    directional_light_shader = (shader){0};
+    directional_light_shader.uniforms = malloc(sizeof(uniforms));
+    directional_light_shader.input_locations = malloc(sizeof(mesh_locations));
+    load_mesh_shader(&directional_light_shader, directional_light_vert_file, directional_light_frag_file);
+    append_slice(&shaders, &directional_light_shader);
 
     slice files = new_slice(sizeof(size_t));
     const size_t *idx = slice_size_t_slice(&files, 0, files.len).data;
@@ -71,6 +91,11 @@ int init(GLFWwindow *window)
         default_scene(current_scene, &current_model, x, COUNT, x == 1);
         current_scene->shader = get_slice_item(&shaders, 0);
     }
+
+    scene *lamp;
+    scene_factory(&lamp);
+    lamp_scene(lamp, &positional_light);
+    lamp->shader = get_slice_item(&shaders, 1);
 
     for (size_t i = 0; i < scenes.len; i++)
     {
@@ -130,6 +155,17 @@ void update(GLFWwindow *window, double time, double dt)
     {
         scene *scene = &scene_data[x];
         scene->update(scene, dt, time);
+    }
+
+    shader *shader_data = (shader *)shaders.data;
+    for (size_t i = 0; i < shaders.len; i++)
+    {
+        glUseProgram(shader_data[i].id);
+        glUniform3fv(shader_data[i].uniforms[U_LIGHT_POSITION], 1, positional_light.position);
+        glUniform3fv(shader_data[i].uniforms[U_LIGHT_COLOR], 1, positional_light.color);
+        glUniform3fv(shader_data[i].uniforms[U_LIGHT_AMBIENT], 1, positional_light.ambient);
+        glUniform3fv(shader_data[i].uniforms[U_LIGHT_DIFFUSE], 1, positional_light.diffuse);
+        glUniform3fv(shader_data[i].uniforms[U_LIGHT_SPECULAR], 1, positional_light.specular);
     }
 }
 

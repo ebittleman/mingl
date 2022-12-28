@@ -1,39 +1,54 @@
 #version 330
 
-uniform vec3 cam_pos;
+struct Material {
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float shininess;
+};
+
+struct Light {
+    vec3 position;
+    vec3 color;
+
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+};
+
+uniform vec3 view_position;
+uniform Material material;
+uniform Light light;
+uniform float time;
 
 in vec4 colorInterp;
 in vec2 uvInterp;
 in vec3 fragPosInterp;
 in vec3 normalInterp;
-in float timeInterp;
 
 out vec4 outColor;
 
 #define TAU 6.28318530718
 #define RED vec4(1,0,0,1)
 
-float near = 0.1;
-float far = 100.0;
-vec3 lightColor = vec3(1.0f);
-vec3 lightPos = vec3(100.0f, 100.0f, 100.0f);
-
-float ambientStrength = 0.1;
-float specularStrength = 0.5;
+// vec3 lightColor = vec3(1.0f);
+// vec3 lightPos = vec3(100.0f, 100.0f, 100.0f);
 
 void main() {
 
-    vec3 ambient = ambientStrength * lightColor;
+    // ambient
+    vec3 ambient = light.ambient * material.ambient;
 
+    // diffuse 
     vec3 norm = normalize(normalInterp);
-    vec3 lightDir = normalize(lightPos - fragPosInterp);
+    vec3 lightDir = normalize(light.position - fragPosInterp);
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * lightColor;
+    vec3 diffuse = light.diffuse * (diff * material.diffuse);
 
-    vec3 viewDir = normalize(cam_pos - fragPosInterp);
+    vec3 viewDir = normalize(view_position - fragPosInterp);
     vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 8);
-    vec3 specular = specularStrength * spec * lightColor;
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    vec3 specular = light.specular * (spec * material.specular);
     vec3 result = (ambient + diffuse + specular);
     outColor = vec4(result * colorInterp.rgb, 1.0f);
 

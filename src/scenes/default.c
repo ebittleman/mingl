@@ -8,7 +8,13 @@ typedef struct _default_params
     bool cube_enabled;
 } default_params;
 
-shader cube_material;
+shader debug_cube_material;
+
+material default_model_material = {
+    {1.0f, 0.5f, 0.31f},
+    {1.0f, 0.5f, 0.31f},
+    {0.5f, 0.5f, 0.5f}, // specular lighting doesn't have full effect on this object's material
+    32.0f};
 
 void debug_draw(shader shader, void *parameters)
 {
@@ -63,12 +69,13 @@ void init_default_scene(scene *self, mesh_factory_t mesh_factory, model_factory_
 {
     default_params *params = (default_params *)self->parameters;
     model *first_model = *(model **)get_slice_item(&self->models, 0);
+    first_model->material = &default_model_material;
     float *bounds = first_model->bounds;
 
     if (self->shader != NULL)
     {
-        cube_material = *self->shader;
-        cube_material.draw = &debug_draw;
+        debug_cube_material = *self->shader;
+        debug_cube_material.draw = &debug_draw;
     }
 
     if (params->cube_enabled)
@@ -77,7 +84,7 @@ void init_default_scene(scene *self, mesh_factory_t mesh_factory, model_factory_
         model_factory(&cube_model);
         if (self->shader != NULL)
         {
-            cube_model->shader = &cube_material;
+            cube_model->shader = &debug_cube_material;
         }
 
         mesh cube_mesh = cube(bounds);

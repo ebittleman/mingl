@@ -6,5 +6,6 @@
 #include "entities.h"
 
 mesh cube(float bounds[6]);
+mesh unit_cube();
 
 #endif

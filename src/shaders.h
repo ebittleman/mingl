@@ -4,6 +4,7 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
+#include "linmath.h"
 #include "types.h"
 
 enum Uniforms
@@ -12,7 +13,17 @@ enum Uniforms
     U_MODEL,
     U_VIEW,
     U_PROJECTION,
-    U_CAM_POS,
+    U_NORMAL_MATRIX,
+    U_VIEW_POSITION,
+    U_MATERIAL_AMBIENT,
+    U_MATERIAL_DIFFUSE,
+    U_MATERIAL_SPECULAR,
+    U_MATERIAL_SHININESS,
+    U_LIGHT_POSITION,
+    U_LIGHT_COLOR,
+    U_LIGHT_AMBIENT,
+    U_LIGHT_DIFFUSE,
+    U_LIGHT_SPECULAR,
     U_TIME,
     COUNT_UNIFORMS
 };
@@ -22,7 +33,17 @@ static const char *UniformNames[] = {
     "model_matrix",
     "view_matrix",
     "proj_matrix",
-    "camera_pos",
+    "normal_matrix",
+    "view_position",
+    "material.ambient",
+    "material.diffuse",
+    "material.specular",
+    "material.shininess",
+    "light.position",
+    "light.color",
+    "light.ambient",
+    "light.diffuse",
+    "light.specular",
     "time",
 };
 

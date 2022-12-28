@@ -8,6 +8,14 @@
 
 #define MAX_BONE_INFLUENCE 4
 
+typedef struct _material
+{
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float shininess;
+} material;
+
 enum vertex_parameters
 {
     VERTEX_POSITION = 0,
@@ -70,6 +78,7 @@ typedef struct _model
     slice meshes;
     float bounds[6];
     shader *shader;
+    material *material;
 } model;
 
 DEFINE_SLICE_TYPE(model);
