@@ -19,6 +19,7 @@ GLFWwindow *init_opengl(init_func_t *init_func);
 
 void load_mesh_shader(shader *program, const char *vert_file, const char *frag_file);
 GLuint setup_mesh(mesh mesh);
+void setup_model(model model);
 void update_loop(GLFWwindow *window, update_func_t *update_func, slice shaders, slice scenes);
 
 #endif

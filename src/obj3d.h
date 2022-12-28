@@ -42,4 +42,4 @@ int line_reader(
 void faces_to_elements(slice *elements, size_t n, face_elements face_data[]);
 
 void calculate_normal_per_vertex(slice buffer_slices[COUNT_BUFFERS]);
-void load_mesh(const char *obj_file_name, mesh *mesh);
+void load_model(const char *obj_file_name, model *model, mesh_factory_t mesh_factory);

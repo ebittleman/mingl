@@ -19,14 +19,17 @@
 #include "scenes/scenes.h"
 
 #define COUNT 6
+
+INITIALIZE_ENTITY_STORAGE()
+
 const char *default_vert_file = "src/shaders/default/default.vert";
 const char *default_frag_file = "src/shaders/default/default.frag";
 
-shader default_shader;
+static shader default_shader;
 GLint uniforms[COUNT_UNIFORMS];
 GLint mesh_locations[VERTEX_PARAM_COUNT];
 
-static slice shaders, meshes, models, scenes;
+static slice shaders;
 
 string ASSET_DIR = "assets";
 static slice strings = {0, 0, sizeof(char), NULL};
@@ -35,16 +38,10 @@ int list_files(string dir_name, slice *files);
 
 int init(GLFWwindow *window)
 {
+    create_entity_tables();
 
     shaders = new_slice(sizeof(shader));
-    meshes = new_slice(sizeof(mesh));
-    models = new_slice(sizeof(model));
-    scenes = new_slice(sizeof(scene));
-
-    model empty_model = {&meshes, 0, 0};
-    mesh empty_mesh = {0};
-
-    shader default_shader;
+    default_shader = (shader){0};
     default_shader.uniforms = uniforms;
     default_shader.input_locations = mesh_locations;
     load_mesh_shader(&default_shader, default_vert_file, default_frag_file);
@@ -60,39 +57,39 @@ int init(GLFWwindow *window)
 
     for (int x = 0; x < COUNT; x++)
     {
-
-        // load and send geometry to OpenGL
-        append_slice(&meshes, &empty_mesh);
-        mesh *current_mesh = (mesh *)get_slice_item(&meshes, meshes.len - 1);
-
+        // load  geometry
         const char *filename = slice_char_slice(&strings, idx[x], strings.len).data;
-        load_mesh(filename, current_mesh);
-        current_mesh->vao = setup_mesh(*current_mesh);
+        model *current_model;
+        size_t current_model_id = model_factory(&current_model);
+
+        load_model(filename, current_model, mesh_factory);
         // todo: calculate normals, tangents, and bitangents for meshes
 
-        // add the mesh to a new model
-        append_slice(&models, &empty_model);
-        model *current_model = (model *)get_slice_item(&models, models.len - 1);
-        current_model->meshes_idx = new_slice(sizeof(size_t));
-        append_slice_size_t(&current_model->meshes_idx, meshes.len - 1);
-        memcpy(current_model->bounds, current_mesh->bounds, sizeof(current_mesh->bounds));
-
         // add the new model to a simple scene
-        scene empty_scene = default_scene(&models, x, COUNT, false);
-        append_slice(&scenes, &empty_scene);
-        scene *current_scene = (scene *)get_slice_item(&scenes, scenes.len - 1);
-        current_scene->models_idx = new_slice(sizeof(size_t));
-        append_slice_size_t(&current_scene->models_idx, models.len - 1);
+        size_t current_scene_id = scene_factory(NULL);
+        scene *current_scene = get_slice_item(&scenes, current_scene_id);
+        default_scene(current_scene, current_model_id, x, COUNT, false);
+    }
+
+    for (size_t i = 0; i < scenes.len; i++)
+    {
+        scene *current_scene = get_slice_item(&scenes, i);
         current_scene->init(current_scene);
+    }
+
+    for (size_t i = 0; i < models.len; i++)
+    {
+        model *current_model = get_slice_item(&models, i);
+        setup_model(*current_model);
     }
 
     glClearColor(.25, .25, .25, 1.0);
     // glPolygonMode(GL_FRONT, GL_LINE);
     // glPolygonMode(GL_BACK, GL_LINE);
-    glEnable(GL_CULL_FACE); // cull face
+    // glEnable(GL_CULL_FACE); // cull face
     // glCullFace(GL_BACK);    // cull back face
     // glFrontFace(GL_CCW);    // GL_CCW for counter clock-wise
-    glEnable(GL_DEPTH_TEST);
+    // glEnable(GL_DEPTH_TEST);
 
     return 0;
 }

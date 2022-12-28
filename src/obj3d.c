@@ -257,7 +257,7 @@ void calculate_normal_per_vertex(slice buffer_slices[COUNT_BUFFERS])
     return;
 }
 
-void load_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS])
+void read_obj_file(const char *obj_file_name, slice buffers[COUNT_BUFFERS])
 {
     line_callback_t *callbacks[COUNT_BUFFERS];
 
@@ -297,7 +297,7 @@ void free_buffers(slice buffers[COUNT_BUFFERS])
     }
 }
 
-static inline void bounding_box(float bounds[6], int n, vec3 *vertices)
+static inline void bounding_box(float bounds[6], size_t n, vec3 *vertices)
 {
     vec3 *min_max = (vec3 *)bounds;
 
@@ -324,44 +324,30 @@ static inline void bounding_box(float bounds[6], int n, vec3 *vertices)
     }
 }
 
-void load_mesh(const char *obj_file_name, mesh *mesh)
+static inline void translate_to_center(float bounds[6], size_t n, vec3 *vertices)
 {
-    slice buffers[COUNT_BUFFERS];
-    load_obj_file(obj_file_name, buffers);
-
-    face *faces = (face *)buffers[ELEMENTS].data;
-    vec3 *vertices_index = (vec3 *)buffers[VERTS].data;
-    vec3 *normal_index = (vec3 *)buffers[NORMALS].data;
-    vec2 *uv_index = (vec2 *)buffers[UVS].data;
-
-    // TODO: find somewhere else for measuring bounding box
-    int num_verts = buffers[VERTS].len / 3;
-    bounding_box(mesh->bounds, num_verts, vertices_index);
-
     vec3 to_local_origin = {
-        ((mesh->bounds[3] - mesh->bounds[0]) / 2) - mesh->bounds[3],
-        ((mesh->bounds[4] - mesh->bounds[1]) / 2) - mesh->bounds[4],
-        ((mesh->bounds[5] - mesh->bounds[2]) / 2) - mesh->bounds[5],
+        ((bounds[3] - bounds[0]) / 2) - bounds[3],
+        ((bounds[4] - bounds[1]) / 2) - bounds[4],
+        ((bounds[5] - bounds[2]) / 2) - bounds[5],
     };
 
-    for (size_t i = 0; i < buffers[VERTS].len / 3; i++)
+    for (size_t i = 0; i < n; i++)
     {
-        vec3_add(vertices_index[i], vertices_index[i], to_local_origin);
+        vec3_add(vertices[i], vertices[i], to_local_origin);
     }
-    vec3_add(mesh->bounds, mesh->bounds, to_local_origin);
-    vec3_add(&mesh->bounds[3], &mesh->bounds[3], to_local_origin);
+    vec3_add(bounds, bounds, to_local_origin);
+    vec3_add(&bounds[3], &bounds[3], to_local_origin);
+}
 
+void cpy_obj(triangle *triangles, slice buffers[COUNT_BUFFERS], size_t n)
+{
     vertex vert = {0};
+    face *faces = (face *)buffers[ELEMENTS].data;
+
+    vec3 *vertices_index = (vec3 *)buffers[VERTS].data;
     size_t position_size = sizeof(vert.position);
-    size_t normal_size = sizeof(vert.normal);
-    size_t uv_size = sizeof(vert.uv);
-
-    size_t num_faces = buffers[ELEMENTS].len / 9;
-    size_t triangles_cap = sizeof(triangle) * num_faces;
-    triangle *triangles = malloc(triangles_cap);
-    memset(triangles, 0, triangles_cap);
-
-    for (int i = 0; i < num_faces; i++)
+    for (int i = 0; i < n; i++)
     {
         face_elements *current_face = (face_elements *)faces[i];
         vertex *current_triangle = (vertex *)triangles[i];
@@ -379,9 +365,11 @@ void load_mesh(const char *obj_file_name, mesh *mesh)
         memcpy(vert3->position, vertices_index[v3_idx], position_size);
     }
 
+    vec3 *normal_index = (vec3 *)buffers[NORMALS].data;
+    size_t normal_size = sizeof(vert.normal);
     if (buffers[NORMALS].len)
     {
-        for (int i = 0; i < num_faces; i++)
+        for (int i = 0; i < n; i++)
         {
             face_elements *current_face = (face_elements *)faces[i];
             vertex *current_triangle = (vertex *)triangles[i];
@@ -400,9 +388,11 @@ void load_mesh(const char *obj_file_name, mesh *mesh)
         }
     }
 
+    vec2 *uv_index = (vec2 *)buffers[UVS].data;
+    size_t uv_size = sizeof(vert.uv);
     if (buffers[UVS].len)
     {
-        for (int i = 0; i < num_faces; i++)
+        for (int i = 0; i < n; i++)
         {
             face_elements *current_face = (face_elements *)faces[i];
             vertex *current_triangle = (vertex *)triangles[i];
@@ -420,8 +410,32 @@ void load_mesh(const char *obj_file_name, mesh *mesh)
             memcpy(vert3->uv, uv_index[text3_idx], uv_size);
         }
     }
+}
 
-    mesh->vertices = (slice){num_faces * 3, triangles_cap, sizeof(vertex), triangles};
+void load_model(const char *obj_file_name, model *model, mesh_factory_t mesh_factory)
+{
+    slice buffers[COUNT_BUFFERS];
+    float bounds[6];
 
+    read_obj_file(obj_file_name, buffers);
+
+    size_t num_verts = buffers[VERTS].len / 3;
+    bounding_box(bounds, num_verts, buffers[VERTS].data);
+    translate_to_center(bounds, num_verts, buffers[VERTS].data);
+
+    size_t num_faces = buffers[ELEMENTS].len / 9;
+    size_t triangles_cap = sizeof(triangle) * num_faces;
+    slice mesh_vertices = {num_faces * 3, triangles_cap, sizeof(vertex), malloc(triangles_cap)};
+    memset(mesh_vertices.data, 0, mesh_vertices.cap);
+    cpy_obj(mesh_vertices.data, buffers, num_faces);
     free_buffers(buffers);
+
+    mesh *current_mesh;
+    size_t current_mesh_id = mesh_factory(&current_mesh);
+
+    memcpy(current_mesh->bounds, bounds, sizeof(bounds));
+    current_mesh->vertices = mesh_vertices;
+
+    append_slice_size_t(&model->meshes_idx, current_mesh_id);
+    memcpy(model->bounds, current_mesh->bounds, sizeof(current_mesh->bounds));
 }

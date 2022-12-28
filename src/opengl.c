@@ -147,6 +147,17 @@ GLuint setup_mesh(mesh mesh)
     return vao;
 }
 
+void setup_model(model model)
+{
+    size_t *mesh_id = (size_t *)model.meshes_idx.data;
+    mesh *meshes_data = (mesh *)model.meshes_table->data;
+
+    for (size_t i = 0; i < model.meshes_idx.len; i++)
+    {
+        meshes_data[mesh_id[i]].vao = setup_mesh(meshes_data[mesh_id[i]]);
+    }
+}
+
 void load_mesh_shader(shader *program, const char *vert_file, const char *frag_file)
 {
     GLuint id = create_shader_program_from_files(vert_file, frag_file);
@@ -175,10 +186,12 @@ void render_mesh(shader current_shader, mesh mesh)
     glBindVertexArray(0);
 }
 
-void render_model(shader current_shader, model model)
+void render_model(shader current_shader, model model, void *parameters)
 {
     size_t *mesh_id = (size_t *)model.meshes_idx.data;
     mesh *meshes_data = (mesh *)model.meshes_table->data;
+
+    current_shader.draw(current_shader, parameters);
 
     for (size_t i = 0; i < model.meshes_idx.len; i++)
     {
@@ -212,8 +225,17 @@ void render_scene(shader current_shader, mat4x4 vp, scene scene)
     for (size_t i = 0; i < scene.models_idx.len; i++)
     {
         model current_model = models_data[models_idx_data[i]];
-        render_model(current_shader, current_model);
+        render_model(current_shader, current_model, scene.parameters);
     }
+}
+
+void noop_draw(shader shader, void *parameters)
+{
+    glEnable(GL_CULL_FACE); // cull face
+    glEnable(GL_DEPTH_TEST);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+    glPolygonMode(GL_FRONT, GL_FILL);
 }
 
 void render(mat4x4 projection, camera cam, double time, slice shaders, slice scenes)
@@ -290,6 +312,16 @@ GLFWwindow *init_opengl(init_func_t *init_func)
 
 void update_loop(GLFWwindow *window, update_func_t *update_func, slice shaders, slice scenes)
 {
+
+    shader *shader_data = (shader *)shaders.data;
+    for (size_t i = 0; i < shaders.len; i++)
+    {
+        if (shader_data[i].draw == NULL)
+        {
+            shader_data[i].draw = &noop_draw;
+        }
+    }
+
     mat4x4 projection;
     while (!glfwWindowShouldClose(window))
     {

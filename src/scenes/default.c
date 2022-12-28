@@ -8,7 +8,7 @@ typedef struct _default_params
     bool cube_enabled;
 } default_params;
 
-void init_default_scene(scene *self)
+void init_default_geometry(scene *self)
 {
     default_params *params = (default_params *)self->parameters;
     int x = params->x, count = params->count;
@@ -48,6 +48,11 @@ void init_default_scene(scene *self)
     // debug_vec3(ranges);
 }
 
+void init_default_scene(scene *self)
+{
+    init_default_geometry(self);
+}
+
 void update_default_scene(scene *self, float dt, float time)
 {
     default_params *params = (default_params *)self->parameters;
@@ -64,9 +69,9 @@ void update_default_scene(scene *self, float dt, float time)
 
     // mat4x4_scale_aniso(S, S, scale, scale, scale);
 
-    // mat4x4_rotate_X(destination_position, destination_position, time * TAU * .1);
+    mat4x4_rotate_X(R, R, time * TAU * .1);
     mat4x4_rotate_Y(R, R, time * TAU * .1);
-    // mat4x4_rotate_Z(destination_position, destination_position, time * TAU * .1);
+    mat4x4_rotate_Z(R, R, time * TAU * .1);
 
     mat4x4_mul(self->current_position, self->position, S);
     mat4x4_mul(self->current_position, self->current_position, R);
@@ -78,20 +83,18 @@ void draw_default_scene(scene self, shader current_shader)
     // set any shader specific uniforms for this scene here
 }
 
-scene default_scene(slice *models_table, int x, int count, bool display_bounds)
+void default_scene(scene *scene, size_t model_id, int x, int count, bool display_bounds)
 {
-    scene result = {0};
 
     default_params *params = malloc(sizeof(default_params));
     params->x = x;
     params->count = count;
     params->cube_enabled = display_bounds;
 
-    result.models_table = models_table;
-    result.init = &init_default_scene;
-    result.update = &update_default_scene;
-    result.draw = &draw_default_scene;
-    result.parameters = params;
+    scene->init = &init_default_scene;
+    scene->update = &update_default_scene;
+    scene->draw = &draw_default_scene;
+    scene->parameters = params;
 
-    return result;
+    append_slice_size_t(&scene->models_idx, model_id);
 }
