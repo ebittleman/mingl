@@ -55,41 +55,43 @@ int init(GLFWwindow *window)
         return err;
     }
 
+    slice models_acc = new_slice(sizeof(model));
+
     for (int x = 0; x < COUNT; x++)
     {
         // load  geometry
         const char *filename = slice_char_slice(&strings, idx[x], strings.len).data;
         model *current_model;
-        size_t current_model_id = model_factory(&current_model);
-
-        load_model(filename, current_model, mesh_factory);
-        // todo: calculate normals, tangents, and bitangents for meshes
+        model_factory(&current_model);
+        load_model(filename, current_model, &mesh_factory);
 
         // add the new model to a simple scene
-        size_t current_scene_id = scene_factory(NULL);
-        scene *current_scene = get_slice_item(&scenes, current_scene_id);
-        default_scene(current_scene, current_model_id, x, COUNT, false);
+        scene *current_scene;
+        scene_factory(&current_scene);
+        default_scene(current_scene, &current_model, x, COUNT, x == 1);
+        current_scene->shader = get_slice_item(&shaders, 0);
     }
 
     for (size_t i = 0; i < scenes.len; i++)
     {
+        models_acc.len = 0;
         scene *current_scene = get_slice_item(&scenes, i);
-        current_scene->init(current_scene);
+        current_scene->init(current_scene, &mesh_factory, &model_factory);
     }
 
     for (size_t i = 0; i < models.len; i++)
     {
         model *current_model = get_slice_item(&models, i);
+        // TODO: ensure every mesh is only loaded into OpenGL once. Right now
+        //       its possible load a mesh more than once if its referenced by
+        //       multiple models
         setup_model(*current_model);
     }
 
     glClearColor(.25, .25, .25, 1.0);
-    // glPolygonMode(GL_FRONT, GL_LINE);
-    // glPolygonMode(GL_BACK, GL_LINE);
-    // glEnable(GL_CULL_FACE); // cull face
-    // glCullFace(GL_BACK);    // cull back face
-    // glFrontFace(GL_CCW);    // GL_CCW for counter clock-wise
-    // glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE); // cull face
+    glFrontFace(GL_CCW);    // GL_CCW for counter clock-wise
+    glEnable(GL_DEPTH_TEST);
 
     return 0;
 }

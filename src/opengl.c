@@ -149,12 +149,12 @@ GLuint setup_mesh(mesh mesh)
 
 void setup_model(model model)
 {
-    size_t *mesh_id = (size_t *)model.meshes_idx.data;
-    mesh *meshes_data = (mesh *)model.meshes_table->data;
-
-    for (size_t i = 0; i < model.meshes_idx.len; i++)
+    mesh **meshes_data = (mesh **)model.meshes.data;
+    for (size_t i = 0; i < model.meshes.len; i++)
     {
-        meshes_data[mesh_id[i]].vao = setup_mesh(meshes_data[mesh_id[i]]);
+        // TODO: only render mesh if its on-screen
+        mesh *current_mesh = meshes_data[i];
+        current_mesh->vao = setup_mesh(*current_mesh);
     }
 }
 
@@ -188,22 +188,26 @@ void render_mesh(shader current_shader, mesh mesh)
 
 void render_model(shader current_shader, model model, void *parameters)
 {
-    size_t *mesh_id = (size_t *)model.meshes_idx.data;
-    mesh *meshes_data = (mesh *)model.meshes_table->data;
+
+    if (model.shader != NULL)
+    {
+        current_shader = *model.shader;
+    }
 
     current_shader.draw(current_shader, parameters);
 
-    for (size_t i = 0; i < model.meshes_idx.len; i++)
+    mesh **meshes_data = (mesh **)model.meshes.data;
+    for (size_t i = 0; i < model.meshes.len; i++)
     {
         // TODO: only render mesh if its on-screen
-        render_mesh(current_shader, meshes_data[mesh_id[i]]);
+        mesh *current_mesh = meshes_data[i];
+        render_mesh(current_shader, *current_mesh);
     }
 }
 
 void render_scene(shader current_shader, mat4x4 vp, scene scene)
 {
-    size_t *models_idx_data = (size_t *)scene.models_idx.data;
-    model *models_data = (model *)scene.models_table->data;
+    model **models_data = (model **)scene.models.data;
 
     if (scene.shader != NULL)
     {
@@ -222,10 +226,10 @@ void render_scene(shader current_shader, mat4x4 vp, scene scene)
         scene.draw(scene, current_shader);
     }
 
-    for (size_t i = 0; i < scene.models_idx.len; i++)
+    for (size_t i = 0; i < scene.models.len; i++)
     {
-        model current_model = models_data[models_idx_data[i]];
-        render_model(current_shader, current_model, scene.parameters);
+        model *current_model = models_data[i];
+        render_model(current_shader, *current_model, scene.parameters);
     }
 }
 

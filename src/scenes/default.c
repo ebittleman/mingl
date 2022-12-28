@@ -8,13 +8,24 @@ typedef struct _default_params
     bool cube_enabled;
 } default_params;
 
+shader cube_material;
+
+void debug_draw(shader shader, void *parameters)
+{
+    glPolygonMode(GL_FRONT, GL_LINE);
+    glPolygonMode(GL_BACK, GL_LINE);
+
+    glDisable(GL_CULL_FACE); // cull face
+    glEnable(GL_DEPTH_TEST);
+    glFrontFace(GL_CCW);
+}
+
 void init_default_geometry(scene *self)
 {
     default_params *params = (default_params *)self->parameters;
     int x = params->x, count = params->count;
 
-    size_t *first_model_idx = (size_t *)get_slice_item(&self->models_idx, 0);
-    model *first_model = (model *)get_slice_item(self->models_table, *first_model_idx);
+    model *first_model = *(model **)get_slice_item(&self->models, 0);
     float *bounds = first_model->bounds;
 
     mat4x4 S, T;
@@ -48,8 +59,36 @@ void init_default_geometry(scene *self)
     // debug_vec3(ranges);
 }
 
-void init_default_scene(scene *self)
+void init_default_scene(scene *self, mesh_factory_t mesh_factory, model_factory_t model_factory)
 {
+    default_params *params = (default_params *)self->parameters;
+    model *first_model = *(model **)get_slice_item(&self->models, 0);
+    float *bounds = first_model->bounds;
+
+    if (self->shader != NULL)
+    {
+        cube_material = *self->shader;
+        cube_material.draw = &debug_draw;
+    }
+
+    if (params->cube_enabled)
+    {
+        model *cube_model;
+        model_factory(&cube_model);
+        if (self->shader != NULL)
+        {
+            cube_model->shader = &cube_material;
+        }
+
+        mesh cube_mesh = cube(bounds);
+        mesh *current_mesh;
+        mesh_factory(&current_mesh);
+        *current_mesh = cube_mesh;
+        append_slice(&cube_model->meshes, &current_mesh);
+
+        append_slice(&self->models, &cube_model);
+    }
+
     init_default_geometry(self);
 }
 
@@ -83,7 +122,7 @@ void draw_default_scene(scene self, shader current_shader)
     // set any shader specific uniforms for this scene here
 }
 
-void default_scene(scene *scene, size_t model_id, int x, int count, bool display_bounds)
+void default_scene(scene *scene, model **model, int x, int count, bool display_bounds)
 {
 
     default_params *params = malloc(sizeof(default_params));
@@ -96,5 +135,5 @@ void default_scene(scene *scene, size_t model_id, int x, int count, bool display
     scene->draw = &draw_default_scene;
     scene->parameters = params;
 
-    append_slice_size_t(&scene->models_idx, model_id);
+    append_slice(&scene->models, model);
 }

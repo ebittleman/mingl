@@ -67,9 +67,9 @@ typedef size_t (*mesh_factory_t)(mesh **);
 
 typedef struct _model
 {
-    slice *meshes_table;
-    slice meshes_idx;
+    slice meshes;
     float bounds[6];
+    shader *shader;
 } model;
 
 DEFINE_SLICE_TYPE(model);
@@ -77,17 +77,14 @@ typedef size_t (*model_factory_t)(model **);
 
 typedef struct _scene
 {
-    slice *meshes_table;
-    slice *models_table;
-
-    slice models_idx;
+    slice models;
     mat4x4 position;
     mat4x4 current_position;
 
     shader *shader;
     void *parameters;
 
-    void (*init)(struct _scene *);
+    void (*init)(struct _scene *, mesh_factory_t, model_factory_t);
     void (*update)(struct _scene *, float, float);
     void (*draw)(struct _scene, shader);
 } scene;
@@ -99,58 +96,52 @@ size_t mesh_factory(mesh **new_mesh);
 size_t model_factory(model **new_model);
 size_t scene_factory(scene **new_scene);
 
-#define INITIALIZE_ENTITY_STORAGE()                                              \
-    static slice shaders, meshes, models, scenes;                                \
-                                                                                 \
-    size_t mesh_factory(mesh **new_mesh)                                         \
-    {                                                                            \
-        mesh empty_mesh = {0};                                                   \
-        append_slice(&meshes, &empty_mesh);                                      \
-        if (new_mesh != NULL)                                                    \
-        {                                                                        \
-            *new_mesh = (mesh *)get_slice_item(&meshes, meshes.len - 1);         \
-        }                                                                        \
-                                                                                 \
-        return meshes.len - 1;                                                   \
-    }                                                                            \
-                                                                                 \
-    size_t model_factory(model **new_model)                                      \
-    {                                                                            \
-        model empty_model = {&meshes, 0, 0};                                     \
-                                                                                 \
-        append_slice(&models, &empty_model);                                     \
-        model *current_model = (model *)get_slice_item(&models, models.len - 1); \
-        current_model->meshes_idx = new_slice(sizeof(size_t));                   \
-        if (new_model != NULL)                                                   \
-        {                                                                        \
-            *new_model = current_model;                                          \
-        }                                                                        \
-        return models.len - 1;                                                   \
-    }                                                                            \
-                                                                                 \
-    size_t scene_factory(scene **new_scene)                                      \
-    {                                                                            \
-        scene empty_scene = {                                                    \
-            &meshes, &models,                                                    \
-            0, 0, 0,                                                             \
-            0, 0,                                                                \
-            0, 0, 0};                                                            \
-                                                                                 \
-        append_slice(&scenes, &empty_scene);                                     \
-        scene *current_scene = (scene *)get_slice_item(&scenes, scenes.len - 1); \
-        current_scene->models_idx = new_slice(sizeof(size_t));                   \
-        if (new_scene != NULL)                                                   \
-        {                                                                        \
-            *new_scene = current_scene;                                          \
-        }                                                                        \
-        return scenes.len - 1;                                                   \
-    }                                                                            \
-                                                                                 \
-    void create_entity_tables()                                                  \
-    {                                                                            \
-        meshes = new_slice(sizeof(mesh));                                        \
-        models = new_slice(sizeof(model));                                       \
-        scenes = new_slice(sizeof(scene));                                       \
+#define INITIALIZE_ENTITY_STORAGE()                                     \
+    static slice shaders, meshes, models, scenes;                       \
+                                                                        \
+    size_t mesh_factory(mesh **new_mesh)                                \
+    {                                                                   \
+        mesh empty_mesh = {0};                                          \
+        append_slice(&meshes, &empty_mesh);                             \
+        if (new_mesh != NULL)                                           \
+        {                                                               \
+            *new_mesh = get_slice_item(&meshes, meshes.len - 1);        \
+        }                                                               \
+                                                                        \
+        return meshes.len - 1;                                          \
+    }                                                                   \
+                                                                        \
+    size_t model_factory(model **new_model)                             \
+    {                                                                   \
+        model empty_model = {0};                                        \
+        append_slice(&models, &empty_model);                            \
+        model *current_model = get_slice_item(&models, models.len - 1); \
+        current_model->meshes = new_slice(sizeof(mesh *));              \
+        if (new_model != NULL)                                          \
+        {                                                               \
+            *new_model = current_model;                                 \
+        }                                                               \
+        return models.len - 1;                                          \
+    }                                                                   \
+                                                                        \
+    size_t scene_factory(scene **new_scene)                             \
+    {                                                                   \
+        scene empty_scene = {0};                                        \
+        append_slice(&scenes, &empty_scene);                            \
+        scene *current_scene = get_slice_item(&scenes, scenes.len - 1); \
+        current_scene->models = new_slice(sizeof(model *));             \
+        if (new_scene != NULL)                                          \
+        {                                                               \
+            *new_scene = current_scene;                                 \
+        }                                                               \
+        return scenes.len - 1;                                          \
+    }                                                                   \
+                                                                        \
+    void create_entity_tables()                                         \
+    {                                                                   \
+        meshes = new_slice(sizeof(mesh));                               \
+        models = new_slice(sizeof(model));                              \
+        scenes = new_slice(sizeof(scene));                              \
     }
 
 #endif

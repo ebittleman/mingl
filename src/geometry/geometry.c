@@ -275,7 +275,7 @@ void cube_vertices(vertex dst[36], float bounds[6])
     memcpy(dst, vertices, sizeof(vertices));
 }
 
-size_t cube(slice *meshes_table, float bounds[6])
+mesh cube(float bounds[6])
 {
     mesh current_mesh;
     current_mesh.vertices = new_slice(sizeof(vertex));
@@ -284,9 +284,5 @@ size_t cube(slice *meshes_table, float bounds[6])
     reset_slice(&current_mesh.vertices, sizeof(vertex), 36, 36 * sizeof(vertex));
     cube_vertices((vertex *)current_mesh.vertices.data, bounds);
 
-    current_mesh.vao = setup_mesh(current_mesh);
-
-    append_slice(meshes_table, &current_mesh);
-
-    return meshes_table->len - 1;
+    return current_mesh;
 }

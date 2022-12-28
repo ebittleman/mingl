@@ -340,7 +340,7 @@ static inline void translate_to_center(float bounds[6], size_t n, vec3 *vertices
     vec3_add(&bounds[3], &bounds[3], to_local_origin);
 }
 
-void cpy_obj(triangle *triangles, slice buffers[COUNT_BUFFERS], size_t n)
+void objcpy(triangle *triangles, slice buffers[COUNT_BUFFERS], size_t n)
 {
     vertex vert = {0};
     face *faces = (face *)buffers[ELEMENTS].data;
@@ -418,6 +418,8 @@ void load_model(const char *obj_file_name, model *model, mesh_factory_t mesh_fac
     float bounds[6];
 
     read_obj_file(obj_file_name, buffers);
+    // TODO: break up into as many meshes actually defined in file
+    // TODO: support reading in bone and animation data
 
     size_t num_verts = buffers[VERTS].len / 3;
     bounding_box(bounds, num_verts, buffers[VERTS].data);
@@ -427,15 +429,16 @@ void load_model(const char *obj_file_name, model *model, mesh_factory_t mesh_fac
     size_t triangles_cap = sizeof(triangle) * num_faces;
     slice mesh_vertices = {num_faces * 3, triangles_cap, sizeof(vertex), malloc(triangles_cap)};
     memset(mesh_vertices.data, 0, mesh_vertices.cap);
-    cpy_obj(mesh_vertices.data, buffers, num_faces);
+    objcpy(mesh_vertices.data, buffers, num_faces);
     free_buffers(buffers);
 
-    mesh *current_mesh;
-    size_t current_mesh_id = mesh_factory(&current_mesh);
+    // TODO: calculate normals, tangents, and bitangents for vertices
 
+    mesh *current_mesh;
+    mesh_factory(&current_mesh);
     memcpy(current_mesh->bounds, bounds, sizeof(bounds));
     current_mesh->vertices = mesh_vertices;
 
-    append_slice_size_t(&model->meshes_idx, current_mesh_id);
+    append_slice(&model->meshes, &current_mesh);
     memcpy(model->bounds, current_mesh->bounds, sizeof(current_mesh->bounds));
 }
