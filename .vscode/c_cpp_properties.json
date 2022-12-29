@@ -5,6 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/tests",
                 "${workspaceFolder}/third_party/GLAD/include",
+                "${workspaceFolder}/third_party/glfw/include",
                 "${workspaceFolder}/src",
                 "C:/msys64/clang64/include",
                 "C:/msys64/clang64/lib/clang/15.0.3/include",

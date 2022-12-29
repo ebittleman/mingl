@@ -1,12 +1,23 @@
 add_executable(mingl main.c)
 
-add_subdirectory(geometry)
-add_subdirectory(scenes)
-
 FILE(GLOB SOURCES *.c)
+FILE(GLOB SOURCES_HEADERS *.h)
+FILE(GLOB GEOMETRY geometry/*.c)
+FILE(GLOB GEOMETRY_HEADERS geometry/*.h)
+FILE(GLOB SCENES scenes/*.c)
+FILE(GLOB SCENES_HEADERS scenes/*.h)
 
-target_include_directories(mingl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_sources(mingl PRIVATE ${SOURCES})
+target_include_directories(mingl PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/geometry"
+    "${CMAKE_CURRENT_SOURCE_DIR}/scenes"
+    "${GLFW_SOURCE_DIR}/include"
+    "${mingl_SOURCE_DIR}/third_party/GLAD/include"
+)
 
-target_include_directories(mingl PUBLIC ${mingl_SOURCE_DIR}/third_party/GLAD/include)
-target_link_libraries(mingl PUBLIC opengl32 gdi32 m glfw3)
+target_sources(mingl PRIVATE
+    ${SOURCES} ${SOURCES_HEADERS}
+    ${GEOMETRY} ${GEOMETRY_HEADERS}
+    ${SCENES} ${SCENES_HEADERS}
+)
+target_link_libraries(mingl PUBLIC opengl32 gdi32 m glfw)

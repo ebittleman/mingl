@@ -43,7 +43,9 @@
         "__bit_reference": "c",
         "opengl.h": "c",
         "scenes.h": "c",
-        "geometry.h": "c"
+        "geometry.h": "c",
+        "camera.h": "c",
+        "shaders.h": "c"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",

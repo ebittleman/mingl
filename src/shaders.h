@@ -2,7 +2,8 @@
 #define _SHADERS_H
 
 #define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
+// #include <GLFW/glfw3.h>
+// #include <GLFW/glfw3.h>
 #include <glad/gl.h>
 #include "linmath.h"
 #include "types.h"

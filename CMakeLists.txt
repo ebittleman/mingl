@@ -1,5 +1,7 @@
-cmake_minimum_required(VERSION 3.0.0)
-project(mingl VERSION 1.0.0)
+cmake_minimum_required(VERSION 3.4...3.20 FATAL_ERROR)
+project(mingl VERSION 1.0.0 LANGUAGES C)
+
+include(CMakeDependentOption)
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED True)
@@ -11,10 +13,15 @@ enable_testing()
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+
 include(CPack)
+
+set(GLFW_DIR .)
+find_package(GLFW REQUIRED)
 
 #--------------------------------------------------------------------
 # Add subdirectories
 #--------------------------------------------------------------------
+# add_subdirectory(third_party/glfw)
 add_subdirectory(src)
-add_subdirectory(tests)
+# add_subdirectory(tests)

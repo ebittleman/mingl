@@ -20,7 +20,7 @@
 
 #define COUNT 6
 
-INITIALIZE_ENTITY_STORAGE()
+INITIALIZE_ENTITY_STORAGE(mingl)
 
 const char *default_vert_file = "src/shaders/default/default.vert";
 const char *default_frag_file = "src/shaders/default/default.frag";
@@ -97,16 +97,16 @@ int init(GLFWwindow *window)
     lamp_scene(lamp, &positional_light);
     lamp->shader = get_slice_item(&shaders, 1);
 
-    for (size_t i = 0; i < scenes.len; i++)
+    for (size_t i = 0; i < mingl_scenes.len; i++)
     {
         models_acc.len = 0;
-        scene *current_scene = get_slice_item(&scenes, i);
+        scene *current_scene = get_slice_item(&mingl_scenes, i);
         current_scene->init(current_scene, &mesh_factory, &model_factory);
     }
 
-    for (size_t i = 0; i < models.len; i++)
+    for (size_t i = 0; i < mingl_models.len; i++)
     {
-        model *current_model = get_slice_item(&models, i);
+        model *current_model = get_slice_item(&mingl_models, i);
         // TODO: ensure every mesh is only loaded into OpenGL once. Right now
         //       its possible load a mesh more than once if its referenced by
         //       multiple models
@@ -150,8 +150,8 @@ bool handle_events(GLFWwindow *window, shader *default_shader)
 void update(GLFWwindow *window, double time, double dt)
 {
     bool reloaded = handle_events(window, &default_shader);
-    scene *scene_data = (scene *)scenes.data;
-    for (int x = 0; x < scenes.len; x++)
+    scene *scene_data = (scene *)mingl_scenes.data;
+    for (int x = 0; x < mingl_scenes.len; x++)
     {
         scene *scene = &scene_data[x];
         scene->update(scene, dt, time);
@@ -172,7 +172,7 @@ void update(GLFWwindow *window, double time, double dt)
 int main(void)
 {
     GLFWwindow *window = init_opengl(&init);
-    update_loop(window, update, shaders, scenes);
+    update_loop(window, update, shaders, mingl_scenes);
     exit(EXIT_SUCCESS);
 }
 
