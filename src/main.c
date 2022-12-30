@@ -26,7 +26,7 @@ INITIALIZE_ENTITY_STORAGE(mingl)
 light positional_light = {
     {0.0f, 5.0f, 5.f},
     {1.0f, 1.0f, 1.0f},
-    {0.5f, 0.5f, 0.5f},
+    {1.0f, 1.0f, 1.0f},
     {0.8f, 0.8f, 0.8f},
     {1.0f, 1.0f, 1.0f},
 };
@@ -56,25 +56,26 @@ int init(GLFWwindow *window)
     shader *root_shader = get_slice_item(&shaders, 0);
 
     // directional light shader
-    shader shader2 = directional_light();
+    shader shader2 = lamp_shader();
     append_slice(&shaders, &shader2);
-    shader *directional_light_shader = get_slice_item(&shaders, 1);
+    shader *lamp_shader = get_slice_item(&shaders, 1);
 
     // bind materials to shader instances
     materials = new_slice(sizeof(material));
 
-    material material1 = new_phong_material(
-        root_shader, &phong_materials[PHONG_YELLOW_RUBBER]);
-    append_slice(&materials, &material1);
-    material *all_objects_material = get_slice_item(&materials, materials.len - 1);
-
+    phong_params *material2_params = malloc(sizeof(phong_params));
+    material2_params->phong_material = &phong_materials[PHONG_OBSIDIAN];
+    material2_params->light = &positional_light;
     material material2 = new_debug_phong_material(
-        root_shader, &phong_materials[PHONG_JADE]);
+        root_shader, material2_params);
     append_slice(&materials, &material2);
     material *debug_material = get_slice_item(&materials, materials.len - 1);
 
-    material empty_material = {0};
-    empty_material.shader = directional_light_shader;
+    lamp_shader_params *material3_params = malloc(sizeof(lamp_shader_params));
+    material3_params->light = &positional_light;
+    material material3 = lamp_material(lamp_shader, material3_params);
+    append_slice(&materials, &material3);
+    material *lamp_material = get_slice_item(&materials, materials.len - 1);
 
     // load in static objects
     slice files = new_slice(sizeof(size_t));
@@ -88,6 +89,15 @@ int init(GLFWwindow *window)
     // register all found obj files as "static_objects"
     for (int x = 0; x < files.len; x++)
     {
+        // create a material
+        phong_params *obj_material_params = malloc(sizeof(phong_params));
+        obj_material_params->phong_material = &phong_materials[x % PHONG_MATERIAL_COUNT];
+        obj_material_params->light = &positional_light;
+        material obj_material = new_phong_material(
+            root_shader, obj_material_params);
+        append_slice(&materials, &obj_material);
+        material *obj_material_ptr = get_slice_item(&materials, materials.len - 1);
+
         // load  geometry
         const char *filename = slice_char_slice(&strings, idx[x], strings.len).data;
         model *current_model;
@@ -97,14 +107,14 @@ int init(GLFWwindow *window)
         // add the new model to a simple scene
         scene *current_scene;
         mingl_scene_factory(&current_scene);
-        static_object(current_scene, &current_model, all_objects_material,
+        static_object(current_scene, &current_model, obj_material_ptr,
                       debug_material, x, files.len, x == 1);
     }
 
     // register a lamp into the world
     scene *lamp;
     mingl_scene_factory(&lamp);
-    lamp_scene(lamp, &positional_light, empty_material);
+    lamp_scene(lamp, &positional_light, lamp_material);
 
     // initialize all scenes
     for (size_t i = 0; i < mingl_scenes.len; i++)
@@ -166,17 +176,6 @@ void update(GLFWwindow *window, double time, double dt)
     {
         scene *scene = &scene_data[x];
         scene->update(scene, dt, time);
-    }
-
-    shader *shader_data = (shader *)shaders.data;
-    for (size_t i = 0; i < shaders.len; i++)
-    {
-        glUseProgram(shader_data[i].id);
-        glUniform3fv(shader_data[i].uniforms[U_LIGHT_POSITION], 1, positional_light.position);
-        glUniform3fv(shader_data[i].uniforms[U_LIGHT_COLOR], 1, positional_light.color);
-        glUniform3fv(shader_data[i].uniforms[U_LIGHT_AMBIENT], 1, positional_light.ambient);
-        glUniform3fv(shader_data[i].uniforms[U_LIGHT_DIFFUSE], 1, positional_light.diffuse);
-        glUniform3fv(shader_data[i].uniforms[U_LIGHT_SPECULAR], 1, positional_light.specular);
     }
 }
 

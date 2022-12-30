@@ -3,7 +3,7 @@
 typedef struct _lamp_params
 {
     light *light;
-    material material;
+    material *material;
 } lamp_params;
 
 void init_lamp_scene(scene *self, mesh_factory_t mesh_factory, model_factory_t model_factory)
@@ -18,7 +18,7 @@ void init_lamp_scene(scene *self, mesh_factory_t mesh_factory, model_factory_t m
 
     model *cube_model;
     model_factory(&cube_model);
-    cube_model->material = &params->material;
+    cube_model->material = params->material;
     memcpy(cube_model->bounds, current_mesh->bounds, sizeof(current_mesh->bounds));
 
     append_slice(&cube_model->meshes, &current_mesh);
@@ -35,7 +35,7 @@ void update_lamp_scene(scene *self, float dt, float time)
                      position[0], position[1], position[2]);
 }
 
-void lamp_scene(scene *scene, light *light, material material)
+void lamp_scene(scene *scene, light *light, material *material)
 {
     lamp_params *params = malloc(sizeof(lamp_params));
     params->light = light;

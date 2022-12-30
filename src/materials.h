@@ -2,13 +2,6 @@
 #define MATERIALS_C
 #include "shaders/shaders.h"
 
-enum MaterialIDS
-{
-    ALL_STATIC_OBJECTS = 0,
-    DEBUGGED_STATIC_OBJECTS,
-    EMPTY_MATERIAL,
-};
-
 // http://devernay.free.fr/cours/opengl/materials.html
 phong_material phong_materials[] = {
     // Emerald
@@ -60,6 +53,8 @@ enum PhongMaterialIDS
     PHONG_OBSIDIAN,
 
     PHONG_YELLOW_RUBBER,
+
+    PHONG_MATERIAL_COUNT,
 };
 
 #endif

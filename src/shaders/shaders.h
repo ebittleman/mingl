@@ -9,10 +9,11 @@
 #include <glad/gl.h>
 #include "linmath.h"
 #include "shader_util.h"
+#include "types.h"
 
+// default uniforms
 enum Uniforms
 {
-    // default uniforms
     U_MVP = 0,
     U_MODEL,
     U_VIEW,
@@ -20,19 +21,6 @@ enum Uniforms
     U_NORMAL_MATRIX,
     U_VIEW_POSITION,
     U_TIME,
-
-    // Phong Uniforms
-    U_MATERIAL_AMBIENT,
-    U_MATERIAL_DIFFUSE,
-    U_MATERIAL_SPECULAR,
-    U_MATERIAL_SHININESS,
-    U_LIGHT_POSITION,
-    U_LIGHT_COLOR,
-    U_LIGHT_AMBIENT,
-    U_LIGHT_DIFFUSE,
-    U_LIGHT_SPECULAR,
-
-    // count helper
     COUNT_UNIFORMS
 };
 
@@ -45,17 +33,6 @@ static const char *UniformNames[] = {
     "normal_matrix",
     "view_position",
     "time",
-
-    // phong uniform names
-    "material.ambient",
-    "material.diffuse",
-    "material.specular",
-    "material.shininess",
-    "light.position",
-    "light.color",
-    "light.ambient",
-    "light.diffuse",
-    "light.specular",
 };
 
 // vertex buffers/inputs
@@ -160,9 +137,23 @@ typedef struct _phong_material
 
 } phong_material;
 
+typedef struct _phong_params
+{
+    phong_material *phong_material;
+    light *light;
+} phong_params;
+
 shader phong_shader();
-material new_phong_material(shader *shader, phong_material *params);
-material new_debug_phong_material(shader *shader, phong_material *params);
-shader directional_light();
+material new_phong_material(shader *shader, phong_params *params);
+material new_debug_phong_material(shader *shader, phong_params *params);
+
+typedef struct _lamp_shader_params
+{
+    phong_material *phong_material;
+    light *light;
+} lamp_shader_params;
+
+shader lamp_shader();
+material lamp_material(shader *shader, lamp_shader_params *params);
 
 #endif
