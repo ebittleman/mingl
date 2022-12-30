@@ -35,7 +35,7 @@ static shader directional_light_shader;
 GLint uniforms[COUNT_UNIFORMS];
 GLint mesh_locations[VERTEX_PARAM_COUNT];
 
-static slice shaders;
+static slice shaders, materials;
 
 string ASSET_DIR = "assets/models";
 static slice strings = {0, 0, sizeof(char), NULL};
@@ -51,7 +51,7 @@ int init(GLFWwindow *window)
     shaders = new_slice(sizeof(shader));
 
     // default shader
-    shader shader1 = default_shader();
+    shader shader1 = phong_shader();
     append_slice(&shaders, &shader1);
     shader *root_shader = get_slice_item(&shaders, 0);
 
@@ -61,9 +61,20 @@ int init(GLFWwindow *window)
     shader *directional_light_shader = get_slice_item(&shaders, 1);
 
     // bind materials to shader instances
-    materials[ALL_STATIC_OBJECTS].shader = root_shader;
-    materials[DEBUGGED_STATIC_OBJECTS].shader = root_shader;
-    materials[EMPTY_MATERIAL].shader = directional_light_shader;
+    materials = new_slice(sizeof(material));
+
+    material material1 = new_phong_material(
+        root_shader, &phong_materials[PHONG_YELLOW_RUBBER]);
+    append_slice(&materials, &material1);
+    material *all_objects_material = get_slice_item(&materials, materials.len - 1);
+
+    material material2 = new_debug_phong_material(
+        root_shader, &phong_materials[PHONG_JADE]);
+    append_slice(&materials, &material2);
+    material *debug_material = get_slice_item(&materials, materials.len - 1);
+
+    material empty_material = {0};
+    empty_material.shader = directional_light_shader;
 
     // load in static objects
     slice files = new_slice(sizeof(size_t));
@@ -86,14 +97,14 @@ int init(GLFWwindow *window)
         // add the new model to a simple scene
         scene *current_scene;
         mingl_scene_factory(&current_scene);
-        static_object(current_scene, &current_model, &materials[ALL_STATIC_OBJECTS],
-                      &materials[DEBUGGED_STATIC_OBJECTS], x, files.len, x == 1);
+        static_object(current_scene, &current_model, all_objects_material,
+                      debug_material, x, files.len, x == 1);
     }
 
     // register a lamp into the world
     scene *lamp;
     mingl_scene_factory(&lamp);
-    lamp_scene(lamp, &positional_light, materials[EMPTY_MATERIAL]);
+    lamp_scene(lamp, &positional_light, empty_material);
 
     // initialize all scenes
     for (size_t i = 0; i < mingl_scenes.len; i++)

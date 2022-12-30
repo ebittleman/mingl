@@ -27,7 +27,6 @@ void main() {
     gl_Position = mvp_matrix * vec4(position, 1.0);
 
     uvInterp = uv;
-    // normalInterp = transpose(inverse(mat3(model_matrix))) * normal;
     normalInterp = normal_matrix * normal;
     // colorInterp = vec4(0.6f, 0.6f, 0.6f, 1.0f);
     colorInterp = vec4(normalize(normalInterp), 1.0f);

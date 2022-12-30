@@ -2,60 +2,64 @@
 #define MATERIALS_C
 #include "shaders/shaders.h"
 
-static void draw_lit_material(material material, shader shader)
-{
-    glUniform3fv(shader.uniforms[U_MATERIAL_AMBIENT], 1, material.ambient);
-    glUniform3fv(shader.uniforms[U_MATERIAL_DIFFUSE], 1, material.diffuse);
-    glUniform3fv(shader.uniforms[U_MATERIAL_SPECULAR], 1, material.specular);
-    glUniform1f(shader.uniforms[U_MATERIAL_SHININESS], material.shininess);
-}
-
-void debug_draw(material self, shader shader)
-{
-    glPolygonMode(GL_FRONT, GL_LINE);
-    glPolygonMode(GL_BACK, GL_LINE);
-
-    glDisable(GL_CULL_FACE); // cull face
-    glEnable(GL_DEPTH_TEST);
-    glFrontFace(GL_CCW);
-    draw_lit_material(self, shader);
-}
-
-material materials[] = {
-    // all static objects
-    {
-        {1.0f, 0.5f, 0.31f},
-        {1.0f, 0.5f, 0.31f},
-        {0.5f, 0.5f, 0.5f}, // specular lighting doesn't have full effect on this object's material
-        32.0f,
-        1.0f,
-        {1.0f, 1.0f, 1.0f},
-        1.0f,
-        HighlightOn,
-        0,
-        &draw_lit_material},
-
-    // debugged static objects
-    {
-        {1.0f, 0.5f, 0.31f},
-        {1.0f, 0.5f, 0.31f},
-        {0.5f, 0.5f, 0.5f},
-        32.0f,
-        1.0f,
-        {1.0f, 1.0f, 1.0f},
-        1.0f,
-        HighlightOn,
-        0,
-        &debug_draw},
-    // empty material
-    {0},
-};
-
 enum MaterialIDS
 {
     ALL_STATIC_OBJECTS = 0,
     DEBUGGED_STATIC_OBJECTS,
     EMPTY_MATERIAL,
+};
+
+// http://devernay.free.fr/cours/opengl/materials.html
+phong_material phong_materials[] = {
+    // Emerald
+    {{0.215f, 0.1745f, 0.0215f},
+     {0.07568f, 0.61424f, 0.07568f},
+     {0.633f, 0.633f, 0.633f},
+     0.6f * 128.0f,
+     1.0f,
+     {1.0f, 1.0f, 1.0f},
+     1.0f,
+     HighlightOn},
+
+    // Jade
+    {{0.135f, 0.2225f, 0.1575f},
+     {0.54f, 0.89f, 0.63f},
+     {0.316228f, 0.316228f, 0.316228f},
+     0.1f * 128.0f,
+     1.0f,
+     {1.0f, 1.0f, 1.0f},
+     1.0f,
+     HighlightOn},
+
+    // Obsidian
+    {{0.05375f, 0.05f, 0.06625f},
+     {0.18275f, 0.17f, 0.22525f},
+     {0.332741f, 0.328634f, 0.346435f},
+     0.3f * 128.0f,
+     1.0f,
+     {1.0f, 1.0f, 1.0f},
+     1.0f,
+     HighlightOn},
+
+    // Yellow Rubber
+    {{0.05f, 0.05f, 0.0f},
+     {0.5f, 0.5f, 0.4f},
+     {0.7f, 0.7f, 0.04f},
+     0.078125f * 128.0f,
+     1.0f,
+     {1.0f, 1.0f, 1.0f},
+     1.0f,
+     HighlightOn},
+
+};
+
+enum PhongMaterialIDS
+{
+    PHONG_EMERALD = 0,
+    PHONG_JADE,
+    PHONG_OBSIDIAN,
+
+    PHONG_YELLOW_RUBBER,
 };
 
 #endif

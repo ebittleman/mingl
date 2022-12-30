@@ -12,12 +12,16 @@
 
 enum Uniforms
 {
+    // default uniforms
     U_MVP = 0,
     U_MODEL,
     U_VIEW,
     U_PROJECTION,
     U_NORMAL_MATRIX,
     U_VIEW_POSITION,
+    U_TIME,
+
+    // Phong Uniforms
     U_MATERIAL_AMBIENT,
     U_MATERIAL_DIFFUSE,
     U_MATERIAL_SPECULAR,
@@ -27,17 +31,22 @@ enum Uniforms
     U_LIGHT_AMBIENT,
     U_LIGHT_DIFFUSE,
     U_LIGHT_SPECULAR,
-    U_TIME,
+
+    // count helper
     COUNT_UNIFORMS
 };
 
 static const char *UniformNames[] = {
+    // default uniforms
     "mvp_matrix",
     "model_matrix",
     "view_matrix",
     "proj_matrix",
     "normal_matrix",
     "view_position",
+    "time",
+
+    // phong uniform names
     "material.ambient",
     "material.diffuse",
     "material.specular",
@@ -47,9 +56,9 @@ static const char *UniformNames[] = {
     "light.ambient",
     "light.diffuse",
     "light.specular",
-    "time",
 };
 
+// vertex buffers/inputs
 enum vertex_parameters
 {
     VERTEX_POSITION = 0,
@@ -100,19 +109,9 @@ enum IlluminationMode
 
 typedef struct _material
 {
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    float shininess;
-
-    float alpha;
-    vec3 transmission;
-
-    float optical_density;
-
-    unsigned int illum;
-
     shader *shader;
+    void *parameters;
+
     void (*draw)(struct _material, shader);
 
 } material;
@@ -145,7 +144,25 @@ static void simple_draw_shader(shader shader)
     glPolygonMode(GL_FRONT, GL_FILL);
 }
 
-shader default_shader();
+typedef struct _phong_material
+{
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float shininess;
+
+    float alpha;
+    vec3 transmission;
+
+    float optical_density;
+
+    unsigned int illum;
+
+} phong_material;
+
+shader phong_shader();
+material new_phong_material(shader *shader, phong_material *params);
+material new_debug_phong_material(shader *shader, phong_material *params);
 shader directional_light();
 
 #endif
