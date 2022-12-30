@@ -19,7 +19,7 @@
 #include "shaders/shaders.h"
 #include "scenes/scenes.h"
 
-#define COUNT 6
+#include "materials.h"
 
 INITIALIZE_ENTITY_STORAGE(mingl)
 
@@ -37,25 +37,35 @@ GLint mesh_locations[VERTEX_PARAM_COUNT];
 
 static slice shaders;
 
-string ASSET_DIR = "assets";
+string ASSET_DIR = "assets/models";
 static slice strings = {0, 0, sizeof(char), NULL};
 
 int list_files(string dir_name, slice *files);
 
 int init(GLFWwindow *window)
 {
+    // create entity tables
     mingl_create_entity_tables();
 
+    // initialize shaders
     shaders = new_slice(sizeof(shader));
 
     // default shader
     shader shader1 = default_shader();
     append_slice(&shaders, &shader1);
+    shader *root_shader = get_slice_item(&shaders, 0);
 
     // directional light shader
     shader shader2 = directional_light();
     append_slice(&shaders, &shader2);
+    shader *directional_light_shader = get_slice_item(&shaders, 1);
 
+    // bind materials to shader instances
+    materials[ALL_STATIC_OBJECTS].shader = root_shader;
+    materials[DEBUGGED_STATIC_OBJECTS].shader = root_shader;
+    materials[EMPTY_MATERIAL].shader = directional_light_shader;
+
+    // load in static objects
     slice files = new_slice(sizeof(size_t));
     const size_t *idx = slice_size_t_slice(&files, 0, files.len).data;
     int err = list_files(ASSET_DIR, &files);
@@ -64,8 +74,8 @@ int init(GLFWwindow *window)
         return err;
     }
 
-    shader *root_shader = get_slice_item(&shaders, 0);
-    for (int x = 0; x < COUNT; x++)
+    // register all found obj files as "static_objects"
+    for (int x = 0; x < files.len; x++)
     {
         // load  geometry
         const char *filename = slice_char_slice(&strings, idx[x], strings.len).data;
@@ -76,23 +86,23 @@ int init(GLFWwindow *window)
         // add the new model to a simple scene
         scene *current_scene;
         mingl_scene_factory(&current_scene);
-        default_scene(current_scene, &current_model, root_shader, x, COUNT, x == 1);
+        static_object(current_scene, &current_model, &materials[ALL_STATIC_OBJECTS],
+                      &materials[DEBUGGED_STATIC_OBJECTS], x, files.len, x == 1);
     }
 
-    material lamp_material = {0};
-    lamp_material.shader = get_slice_item(&shaders, 1);
-    lamp_material.draw = draw_lit_material;
-
+    // register a lamp into the world
     scene *lamp;
     mingl_scene_factory(&lamp);
-    lamp_scene(lamp, &positional_light, lamp_material);
+    lamp_scene(lamp, &positional_light, materials[EMPTY_MATERIAL]);
 
+    // initialize all scenes
     for (size_t i = 0; i < mingl_scenes.len; i++)
     {
         scene *current_scene = get_slice_item(&mingl_scenes, i);
         current_scene->init(current_scene, &mingl_mesh_factory, &mingl_model_factory);
     }
 
+    // send all models to opengl
     for (size_t i = 0; i < mingl_models.len; i++)
     {
         model *current_model = get_slice_item(&mingl_models, i);
@@ -102,6 +112,7 @@ int init(GLFWwindow *window)
         setup_model(*current_model);
     }
 
+    // set some sane opengl defaults
     glClearColor(.25, .25, .25, 1.0);
     glEnable(GL_CULL_FACE); // cull face
     glFrontFace(GL_CCW);    // GL_CCW for counter clock-wise

@@ -11,7 +11,9 @@
 #include "shaders/shaders.h"
 #include "geometry/geometry.h"
 
-void default_scene(scene *scene, model **model, shader *scene_shader, int x, int count, bool display_bounds);
+void static_object(scene *scene, model **model, material *base_material,
+                   material *debug_material, int x, int count,
+                   bool display_bounds);
 void lamp_scene(scene *scene, light *light, material material);
 
 #endif

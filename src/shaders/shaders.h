@@ -145,14 +145,6 @@ static void simple_draw_shader(shader shader)
     glPolygonMode(GL_FRONT, GL_FILL);
 }
 
-static void draw_lit_material(material material, shader shader)
-{
-    glUniform3fv(shader.uniforms[U_MATERIAL_AMBIENT], 1, material.ambient);
-    glUniform3fv(shader.uniforms[U_MATERIAL_DIFFUSE], 1, material.diffuse);
-    glUniform3fv(shader.uniforms[U_MATERIAL_SPECULAR], 1, material.specular);
-    glUniform1f(shader.uniforms[U_MATERIAL_SHININESS], material.shininess);
-}
-
 shader default_shader();
 shader directional_light();
 
