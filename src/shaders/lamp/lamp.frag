@@ -14,5 +14,5 @@ uniform Light light;
 out vec4 outColor;
 
 void main() {
-    outColor = vec4(light.color, 1.0f);
+    outColor = vec4(light.ambient, 1.0f);
 }

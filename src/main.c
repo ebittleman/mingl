@@ -26,10 +26,17 @@ INITIALIZE_ENTITY_STORAGE(mingl)
 light positional_light = {
     {0.0f, 5.0f, 5.f},
     {1.0f, 1.0f, 1.0f},
-    {1.0f, 1.0f, 1.0f},
     {0.8f, 0.8f, 0.8f},
-    {1.0f, 1.0f, 1.0f},
+    {0.5f, 0.5f, 0.5f},
+    {0.5f, 0.5f, 0.5f},
 };
+// light positional_light = {
+//     {0.0f, 5.0f, 5.f},
+//     {1.0f, 1.0f, 1.0f},
+//     {1.0f, 1.0f, 1.0f},
+//     {0.8f, 0.8f, 0.8f},
+//     {1.0f, 1.0f, 1.0f},
+// };
 
 static shader directional_light_shader;
 GLint uniforms[COUNT_UNIFORMS];

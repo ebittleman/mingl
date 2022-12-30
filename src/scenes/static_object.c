@@ -88,7 +88,6 @@ void update_static_object(scene *self, float dt, float time)
     // mat4x4_translate_in_place(destination_position, .1f, .2f, .5f);
 
     // float scale = (sinf(time * TAU * .25) + 1.1) * ((params->x + params->count) / params->count);
-
     // mat4x4_scale_aniso(S, S, scale, scale, scale);
 
     mat4x4_rotate_X(R, R, time * TAU * .1);
