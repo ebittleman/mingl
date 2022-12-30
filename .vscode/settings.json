@@ -45,13 +45,11 @@
         "scenes.h": "c",
         "geometry.h": "c",
         "camera.h": "c",
-        "shaders.h": "c"
+        "shaders.h": "c",
+        "shader_util.h": "c"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",
     "lldb.dereferencePointers": true,
-    "lldb.consoleMode": "commands",
-    "cSpell.words": [
-        "Lsizei"
-    ]
+    "lldb.consoleMode": "commands"
 }

@@ -1,4 +1,4 @@
-#version 330
+#version 460
 in vec4 interp;
 in vec2 uv;
 out vec4 fb_color;

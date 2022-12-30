@@ -6,17 +6,36 @@ typedef struct _default_params
     int x;
     int count;
     bool cube_enabled;
+    shader *shader;
 } default_params;
 
-shader debug_cube_material;
+// material debug_cube_material;
 
 material default_model_material = {
     {1.0f, 0.5f, 0.31f},
     {1.0f, 0.5f, 0.31f},
     {0.5f, 0.5f, 0.5f}, // specular lighting doesn't have full effect on this object's material
-    32.0f};
+    32.0f,
+    1.0f,
+    {1.0f, 1.0f, 1.0f},
+    1.0f,
+    HighlightOn,
+    0,
+    0};
 
-void debug_draw(shader shader, void *parameters)
+material default_model_debug_material = {
+    {1.0f, 0.5f, 0.31f},
+    {1.0f, 0.5f, 0.31f},
+    {0.5f, 0.5f, 0.5f}, // specular lighting doesn't have full effect on this object's material
+    32.0f,
+    1.0f,
+    {1.0f, 1.0f, 1.0f},
+    1.0f,
+    HighlightOn,
+    0,
+    0};
+
+void debug_draw(material self, shader shader)
 {
     glPolygonMode(GL_FRONT, GL_LINE);
     glPolygonMode(GL_BACK, GL_LINE);
@@ -24,6 +43,7 @@ void debug_draw(shader shader, void *parameters)
     glDisable(GL_CULL_FACE); // cull face
     glEnable(GL_DEPTH_TEST);
     glFrontFace(GL_CCW);
+    draw_lit_material(self, shader);
 }
 
 void init_default_geometry(scene *self)
@@ -69,23 +89,23 @@ void init_default_scene(scene *self, mesh_factory_t mesh_factory, model_factory_
 {
     default_params *params = (default_params *)self->parameters;
     model *first_model = *(model **)get_slice_item(&self->models, 0);
+
+    default_model_material.draw = &draw_lit_material;
+    default_model_debug_material.draw = debug_draw;
+
     first_model->material = &default_model_material;
     float *bounds = first_model->bounds;
 
-    if (self->shader != NULL)
-    {
-        debug_cube_material = *self->shader;
-        debug_cube_material.draw = &debug_draw;
-    }
+    // debug_cube_material.shader = first_model->material->shader;
+    // debug_cube_material.shader->draw = &debug_draw;
+
+    // scene->draw = &draw_default_scene;
 
     if (params->cube_enabled)
     {
         model *cube_model;
         model_factory(&cube_model);
-        if (self->shader != NULL)
-        {
-            cube_model->shader = &debug_cube_material;
-        }
+        cube_model->material = &default_model_debug_material;
 
         mesh cube_mesh = cube(bounds);
         mesh *current_mesh;
@@ -124,22 +144,24 @@ void update_default_scene(scene *self, float dt, float time)
     // debug_mat(destination_position);
 }
 
-void draw_default_scene(scene self, shader current_shader)
+void draw_default_scene(model self, shader current_shader)
 {
     // set any shader specific uniforms for this scene here
 }
 
-void default_scene(scene *scene, model **model, int x, int count, bool display_bounds)
+void default_scene(scene *scene, model **model, shader *scene_shader, int x, int count, bool display_bounds)
 {
 
     default_params *params = malloc(sizeof(default_params));
     params->x = x;
     params->count = count;
     params->cube_enabled = display_bounds;
+    params->shader = scene_shader;
+
+    default_model_material.shader = scene_shader;
 
     scene->init = &init_default_scene;
     scene->update = &update_default_scene;
-    scene->draw = &draw_default_scene;
     scene->parameters = params;
 
     append_slice(&scene->models, model);

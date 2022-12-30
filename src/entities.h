@@ -4,39 +4,9 @@
 #include "data_structures.h"
 #include "types.h"
 #include "linmath.h"
-#include "shaders.h"
+#include "shaders/shaders.h"
 
 #define MAX_BONE_INFLUENCE 4
-
-typedef struct _material
-{
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    float shininess;
-} material;
-
-enum vertex_parameters
-{
-    VERTEX_POSITION = 0,
-    VERTEX_NORMAL,
-    VERTEX_UV,
-    VERTEX_TANGENT,
-    VERTEX_BITANGENT,
-    VERTEX_BONE_IDS,
-    VERTEX_BONE_WEIGHTS,
-    VERTEX_PARAM_COUNT,
-};
-
-static const char *vertex_param_names[] = {
-    "position",
-    "normal",
-    "uv",
-    "tangent",
-    "bitangent",
-    "bones",
-    "bone_weight",
-};
 
 typedef struct _vertex
 {
@@ -77,7 +47,7 @@ typedef struct _model
 {
     slice meshes;
     float bounds[6];
-    shader *shader;
+
     material *material;
 } model;
 
@@ -90,25 +60,19 @@ typedef struct _scene
     mat4x4 position;
     mat4x4 current_position;
 
-    shader *shader;
     void *parameters;
 
     void (*init)(struct _scene *, mesh_factory_t, model_factory_t);
     void (*update)(struct _scene *, float, float);
-    void (*draw)(struct _scene, shader);
 } scene;
 
 DEFINE_SLICE_TYPE(scene);
 typedef size_t (*scene_factory_t)(scene **);
 
-size_t mesh_factory(mesh **new_mesh);
-size_t model_factory(model **new_model);
-size_t scene_factory(scene **new_scene);
-
 #define INITIALIZE_ENTITY_STORAGE(ns)                                             \
     static slice ns##_meshes, ns##_models, ns##_scenes;                           \
                                                                                   \
-    size_t mesh_factory(mesh **new_mesh)                                          \
+    size_t ns##_mesh_factory(mesh **new_mesh)                                     \
     {                                                                             \
         mesh empty_mesh = {0};                                                    \
         append_slice(&ns##_meshes, &empty_mesh);                                  \
@@ -120,7 +84,7 @@ size_t scene_factory(scene **new_scene);
         return ns##_meshes.len - 1;                                               \
     }                                                                             \
                                                                                   \
-    size_t model_factory(model **new_model)                                       \
+    size_t ns##_model_factory(model **new_model)                                  \
     {                                                                             \
         model empty_model = {0};                                                  \
         append_slice(&ns##_models, &empty_model);                                 \
@@ -133,7 +97,7 @@ size_t scene_factory(scene **new_scene);
         return ns##_models.len - 1;                                               \
     }                                                                             \
                                                                                   \
-    size_t scene_factory(scene **new_scene)                                       \
+    size_t ns##_scene_factory(scene **new_scene)                                  \
     {                                                                             \
         scene empty_scene = {0};                                                  \
         append_slice(&ns##_scenes, &empty_scene);                                 \
@@ -146,7 +110,7 @@ size_t scene_factory(scene **new_scene);
         return ns##_scenes.len - 1;                                               \
     }                                                                             \
                                                                                   \
-    void create_entity_tables()                                                   \
+    void ns##_create_entity_tables()                                              \
     {                                                                             \
         ns##_meshes = new_slice(sizeof(mesh));                                    \
         ns##_models = new_slice(sizeof(model));                                   \

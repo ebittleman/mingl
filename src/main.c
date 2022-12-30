@@ -14,19 +14,14 @@
 #include "opengl.h"
 #include "entities.h"
 #include "linmath.h"
-#include "shaders.h"
+#include "shader_util.h"
 #include "types.h"
+#include "shaders/shaders.h"
 #include "scenes/scenes.h"
 
 #define COUNT 6
 
 INITIALIZE_ENTITY_STORAGE(mingl)
-
-const char *default_vert_file = "src/shaders/default/default.vert";
-const char *default_frag_file = "src/shaders/default/default.frag";
-
-const char *directional_light_vert_file = "src/shaders/directional_light/directional_light.vert";
-const char *directional_light_frag_file = "src/shaders/directional_light/directional_light.frag";
 
 light positional_light = {
     {0.0f, 5.0f, 5.f},
@@ -36,7 +31,7 @@ light positional_light = {
     {1.0f, 1.0f, 1.0f},
 };
 
-static shader default_shader, directional_light_shader;
+static shader directional_light_shader;
 GLint uniforms[COUNT_UNIFORMS];
 GLint mesh_locations[VERTEX_PARAM_COUNT];
 
@@ -49,23 +44,17 @@ int list_files(string dir_name, slice *files);
 
 int init(GLFWwindow *window)
 {
-    create_entity_tables();
+    mingl_create_entity_tables();
 
     shaders = new_slice(sizeof(shader));
 
     // default shader
-    default_shader = (shader){0};
-    default_shader.uniforms = uniforms;
-    default_shader.input_locations = mesh_locations;
-    load_mesh_shader(&default_shader, default_vert_file, default_frag_file);
-    append_slice(&shaders, &default_shader);
+    shader shader1 = default_shader();
+    append_slice(&shaders, &shader1);
 
     // directional light shader
-    directional_light_shader = (shader){0};
-    directional_light_shader.uniforms = malloc(sizeof(uniforms));
-    directional_light_shader.input_locations = malloc(sizeof(mesh_locations));
-    load_mesh_shader(&directional_light_shader, directional_light_vert_file, directional_light_frag_file);
-    append_slice(&shaders, &directional_light_shader);
+    shader shader2 = directional_light();
+    append_slice(&shaders, &shader2);
 
     slice files = new_slice(sizeof(size_t));
     const size_t *idx = slice_size_t_slice(&files, 0, files.len).data;
@@ -75,33 +64,33 @@ int init(GLFWwindow *window)
         return err;
     }
 
-    slice models_acc = new_slice(sizeof(model));
-
+    shader *root_shader = get_slice_item(&shaders, 0);
     for (int x = 0; x < COUNT; x++)
     {
         // load  geometry
         const char *filename = slice_char_slice(&strings, idx[x], strings.len).data;
         model *current_model;
-        model_factory(&current_model);
-        load_model(filename, current_model, &mesh_factory);
+        mingl_model_factory(&current_model);
+        load_model(filename, current_model, &mingl_mesh_factory);
 
         // add the new model to a simple scene
         scene *current_scene;
-        scene_factory(&current_scene);
-        default_scene(current_scene, &current_model, x, COUNT, x == 1);
-        current_scene->shader = get_slice_item(&shaders, 0);
+        mingl_scene_factory(&current_scene);
+        default_scene(current_scene, &current_model, root_shader, x, COUNT, x == 1);
     }
 
+    material lamp_material = {0};
+    lamp_material.shader = get_slice_item(&shaders, 1);
+    lamp_material.draw = draw_lit_material;
+
     scene *lamp;
-    scene_factory(&lamp);
-    lamp_scene(lamp, &positional_light);
-    lamp->shader = get_slice_item(&shaders, 1);
+    mingl_scene_factory(&lamp);
+    lamp_scene(lamp, &positional_light, lamp_material);
 
     for (size_t i = 0; i < mingl_scenes.len; i++)
     {
-        models_acc.len = 0;
         scene *current_scene = get_slice_item(&mingl_scenes, i);
-        current_scene->init(current_scene, &mesh_factory, &model_factory);
+        current_scene->init(current_scene, &mingl_mesh_factory, &mingl_model_factory);
     }
 
     for (size_t i = 0; i < mingl_models.len; i++)
@@ -121,7 +110,7 @@ int init(GLFWwindow *window)
     return 0;
 }
 
-bool handle_events(GLFWwindow *window, shader *default_shader)
+bool handle_events(GLFWwindow *window)
 {
     static bool reload_key_pressed = false;
     bool down = glfwGetKey(window, GLFW_KEY_R);
@@ -149,7 +138,7 @@ bool handle_events(GLFWwindow *window, shader *default_shader)
 
 void update(GLFWwindow *window, double time, double dt)
 {
-    bool reloaded = handle_events(window, &default_shader);
+    bool reloaded = handle_events(window);
     scene *scene_data = (scene *)mingl_scenes.data;
     for (int x = 0; x < mingl_scenes.len; x++)
     {
@@ -172,7 +161,7 @@ void update(GLFWwindow *window, double time, double dt)
 int main(void)
 {
     GLFWwindow *window = init_opengl(&init);
-    update_loop(window, update, shaders, mingl_scenes);
+    start(window, update, shaders, mingl_scenes);
     exit(EXIT_SUCCESS);
 }
 

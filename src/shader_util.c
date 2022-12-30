@@ -1,9 +1,4 @@
-#include <stdbool.h>
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
-
-#include "shaders.h"
+#include "shader_util.h"
 
 // set a max limit on shader length to avoid dynamic memory allocation
 #define MAX_SHADER_SZ 100000

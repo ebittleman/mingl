@@ -1,20 +1,21 @@
-add_executable(all_tests main_test.c)
 
-
-file(GLOB SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/../src/*.c)
 file(GLOB TEST_SOURCES *.c)
+add_executable(all_tests ${TEST_SOURCES})
 
-remove (SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/../src/main.c)
-remove (TEST_SOURCES main_test.c)
 
-target_sources(all_tests PRIVATE ${SOURCES}  ${TEST_SOURCES})
-target_include_directories(all_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+get_target_property(MINGL_LINK_LIBRARIES mingl LINK_LIBRARIES)
+get_target_property(MINGL_SOURCE_DIR mingl SOURCE_DIR)
+get_target_property(MINGL_SOURCES mingl SOURCES)
+remove (MINGL_SOURCES "${MINGL_SOURCE_DIR}/main.c")
+remove (MINGL_SOURCES "main.c")
 
+get_target_property(MINGL_INCLUDE_DIRECTORIES mingl INCLUDE_DIRECTORIES)
 target_include_directories(all_tests PUBLIC
+    ${MINGL_INCLUDE_DIRECTORIES}
     "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${GLFW_SOURCE_DIR}/include"
-    "${mingl_SOURCE_DIR}/third_party/GLAD/include"
 )
-target_link_libraries(all_tests PUBLIC opengl32 gdi32 m glfw3)
+
+target_sources(all_tests PRIVATE ${MINGL_SOURCES})
+target_link_libraries(all_tests PUBLIC ${MINGL_LINK_LIBRARIES})
 
 add_test(tests all_tests)

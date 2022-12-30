@@ -1,8 +1,3 @@
-
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-
 #include "opengl.h"
 
 static camera cam;
@@ -44,11 +39,11 @@ void process_keyboard(GLFWwindow *window, float dt)
         camera_process_keyboard(&cam, RIGHT, dt);
 }
 
-double lastX, lastY;
-bool firstMouse = true;
-
 static void mouse_callback(GLFWwindow *window, double x_pos, double y_pos)
 {
+    static double lastX, lastY;
+    static bool firstMouse = true;
+
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
 
@@ -61,20 +56,20 @@ static void mouse_callback(GLFWwindow *window, double x_pos, double y_pos)
     pitch -= 89;
 
     // TODO: figure out how to make this smooth...probably some interpolation
-    process_mouse_movement(&cam, yaw, -pitch, true);
+    // process_mouse_movement(&cam, yaw, -pitch, true);
 
-    // if (firstMouse)
-    // {
-    //     lastX = x_pos;
-    //     lastY = y_pos;
-    //     firstMouse = false;
-    // }
+    if (firstMouse)
+    {
+        lastX = x_pos;
+        lastY = y_pos;
+        firstMouse = false;
+    }
 
-    // float x_offset = x_pos - lastX;
-    // float y_offset = lastY - y_pos;
-    // lastX = x_pos;
-    // lastY = y_pos;
-    // process_mouse_movement_by_offset(&cam, x_offset, y_offset, true);
+    float x_offset = x_pos - lastX;
+    float y_offset = lastY - y_pos;
+    lastX = x_pos;
+    lastY = y_pos;
+    process_mouse_movement_by_offset(&cam, x_offset, y_offset, true);
 }
 
 static void scroll_callback(GLFWwindow *window, double x_offset, double y_offset)
@@ -158,25 +153,6 @@ void setup_model(model model)
     }
 }
 
-void load_mesh_shader(shader *program, const char *vert_file, const char *frag_file)
-{
-    GLuint id = create_shader_program_from_files(vert_file, frag_file);
-    program->id = id;
-    program->vert_file = vert_file;
-    program->frag_file = frag_file;
-
-    for (size_t i = 0; i < COUNT_UNIFORMS; i++)
-    {
-        program->uniforms[i] = glGetUniformLocation(id, UniformNames[i]);
-    }
-
-    // buffer attributes
-    for (int x = 0; x < VERTEX_PARAM_COUNT; x++)
-    {
-        program->input_locations[x] = glGetAttribLocation(id, vertex_param_names[x]);
-    }
-}
-
 void render_mesh(shader current_shader, mesh mesh)
 {
     glBindVertexArray(mesh.vao);
@@ -184,23 +160,32 @@ void render_mesh(shader current_shader, mesh mesh)
     glBindVertexArray(0);
 }
 
-void render_model(shader current_shader, model model, void *parameters)
+void render_model(
+    mat4x4 mvp,
+    mat3x3 normal_matrix,
+    scene parent,
+    shader current_shader, model model, void *parameters)
 {
 
-    if (model.shader != NULL)
+    if (model.material != NULL && model.material->shader != NULL)
     {
-        current_shader = *model.shader;
+        current_shader = *model.material->shader;
     }
 
-    if (model.material != NULL)
+    glUseProgram(current_shader.id);
+    if (current_shader.draw != NULL)
     {
-        glUniform3fv(current_shader.uniforms[U_MATERIAL_AMBIENT], 1, model.material->ambient);
-        glUniform3fv(current_shader.uniforms[U_MATERIAL_DIFFUSE], 1, model.material->diffuse);
-        glUniform3fv(current_shader.uniforms[U_MATERIAL_SPECULAR], 1, model.material->specular);
-        glUniform1f(current_shader.uniforms[U_MATERIAL_SHININESS], model.material->shininess);
+        current_shader.draw(current_shader);
     }
 
-    current_shader.draw(current_shader, parameters);
+    glUniformMatrix4fv(current_shader.uniforms[U_MVP], 1, GL_FALSE, (const GLfloat *)mvp);
+    glUniformMatrix4fv(current_shader.uniforms[U_MODEL], 1, GL_FALSE, (const GLfloat *)parent.current_position);
+    glUniformMatrix3fv(current_shader.uniforms[U_NORMAL_MATRIX], 1, GL_FALSE, (const GLfloat *)normal_matrix);
+
+    if (model.material != NULL && model.material->draw != NULL)
+    {
+        model.material->draw(*model.material, current_shader);
+    }
 
     mesh **meshes_data = (mesh **)model.meshes.data;
     for (size_t i = 0; i < model.meshes.len; i++)
@@ -215,11 +200,6 @@ void render_scene(shader current_shader, mat4x4 vp, scene scene)
 {
     model **models_data = (model **)scene.models.data;
 
-    if (scene.shader != NULL)
-    {
-        current_shader = *scene.shader;
-    }
-
     mat4x4 mvp;
     mat4x4_mul(mvp, vp, scene.current_position);
 
@@ -230,30 +210,11 @@ void render_scene(shader current_shader, mat4x4 vp, scene scene)
     mat4x4_invert(transpose_model, inverse_model);
     mat3x3_from_4x4(normal_matrix, transpose_model);
 
-    glUseProgram(current_shader.id);
-    glUniformMatrix4fv(current_shader.uniforms[U_MVP], 1, GL_FALSE, (const GLfloat *)mvp);
-    glUniformMatrix4fv(current_shader.uniforms[U_MODEL], 1, GL_FALSE, (const GLfloat *)scene.current_position);
-    glUniformMatrix3fv(current_shader.uniforms[U_NORMAL_MATRIX], 1, GL_FALSE, (const GLfloat *)normal_matrix);
-
-    if (scene.draw != NULL)
-    {
-        scene.draw(scene, current_shader);
-    }
-
     for (size_t i = 0; i < scene.models.len; i++)
     {
         model *current_model = models_data[i];
-        render_model(current_shader, *current_model, scene.parameters);
+        render_model(mvp, normal_matrix, scene, current_shader, *current_model, scene.parameters);
     }
-}
-
-void noop_draw(shader shader, void *parameters)
-{
-    glEnable(GL_CULL_FACE); // cull face
-    glEnable(GL_DEPTH_TEST);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
-    glPolygonMode(GL_FRONT, GL_FILL);
 }
 
 void render(mat4x4 projection, camera cam, double time, slice shaders, slice scenes)
@@ -274,11 +235,11 @@ void render(mat4x4 projection, camera cam, double time, slice shaders, slice sce
         glUniform1f(shader_data[i].uniforms[U_TIME], (float)time);
     }
 
-    shader default_shader = shader_data[0];
+    shader root_shader = shader_data[0];
     scene *scene_data = (scene *)scenes.data;
     for (size_t i = 0; i < scenes.len; i++)
     {
-        render_scene(default_shader, vp, scene_data[i]);
+        render_scene(root_shader, vp, scene_data[i]);
     }
 }
 
@@ -328,17 +289,8 @@ GLFWwindow *init_opengl(init_func_t *init_func)
     return window;
 }
 
-void update_loop(GLFWwindow *window, update_func_t *update_func, slice shaders, slice scenes)
+void start(GLFWwindow *window, update_func_t *update_func, slice shaders, slice scenes)
 {
-
-    shader *shader_data = (shader *)shaders.data;
-    for (size_t i = 0; i < shaders.len; i++)
-    {
-        if (shader_data[i].draw == NULL)
-        {
-            shader_data[i].draw = &noop_draw;
-        }
-    }
 
     mat4x4 projection;
     while (!glfwWindowShouldClose(window))
