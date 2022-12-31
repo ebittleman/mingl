@@ -56,6 +56,18 @@ void camera_process_keyboard(camera *cam, enum Camera_Movement direction, float 
         vec3_scale(tmp, cam->right, velocity);
         vec3_add(cam->position, cam->position, tmp);
     }
+
+    if (direction == UP)
+    {
+        vec3_scale(tmp, cam->world_up, velocity);
+        vec3_add(cam->position, cam->position, tmp);
+    }
+
+    if (direction == DOWN)
+    {
+        vec3_scale(tmp, cam->world_up, velocity);
+        vec3_sub(cam->position, cam->position, tmp);
+    }
 }
 
 void process_mouse_movement_by_offset(

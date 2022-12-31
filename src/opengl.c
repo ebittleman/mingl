@@ -42,6 +42,14 @@ void process_keyboard(GLFWwindow *window, float dt)
         camera_process_keyboard(&cam, LEFT, dt);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera_process_keyboard(&cam, RIGHT, dt);
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+        camera_process_keyboard(&cam, UP, dt);
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        camera_process_keyboard(&cam, DOWN, dt);
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        camera_process_keyboard(&cam, LEFT, dt);
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        camera_process_keyboard(&cam, RIGHT, dt);
 }
 
 static bool mouse_release = true;
