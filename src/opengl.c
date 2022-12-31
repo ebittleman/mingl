@@ -44,37 +44,69 @@ void process_keyboard(GLFWwindow *window, float dt)
         camera_process_keyboard(&cam, RIGHT, dt);
 }
 
+static bool mouse_release = true;
+
+void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+    {
+        mouse_release = true;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+        mouse_release = false;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    }
+}
+
 static void mouse_callback(GLFWwindow *window, double x_pos, double y_pos)
 {
-    static double lastX, lastY;
-    static bool firstMouse = true;
+
+    if (mouse_release)
+    {
+        return;
+    }
 
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
 
-    float yaw = x_pos / (float)width;
-    float pitch = y_pos / (float)height;
+    // strategy1
+    // static double lastX, lastY;
+    // static bool firstMouse = true;
+    // if (firstMouse)
+    // {
+    //     lastX = x_pos;
+    //     lastY = y_pos;
+    //     firstMouse = false;
+    // }
 
-    yaw *= 720;
-    yaw -= 360;
-    pitch *= 178;
-    pitch -= 89;
+    // float x_offset = x_pos - lastX;
+    // float y_offset = lastY - y_pos;
+    // lastX = x_pos;
+    // lastY = y_pos;
+    // process_mouse_movement_by_offset(&cam, x_offset, y_offset, true);
+
+    // strategy 2
+    // float yaw = x_pos / (float)width;
+    // float pitch = y_pos / (float)height;
+
+    // yaw *= 720;
+    // yaw -= 360;
+    // pitch *= 178;
+    // pitch -= 89;
 
     // TODO: figure out how to make this smooth...probably some interpolation
     // process_mouse_movement(&cam, yaw, -pitch, true);
 
-    if (firstMouse)
-    {
-        lastX = x_pos;
-        lastY = y_pos;
-        firstMouse = false;
-    }
-
-    float x_offset = x_pos - lastX;
-    float y_offset = lastY - y_pos;
-    lastX = x_pos;
-    lastY = y_pos;
+    float x_center = ((float)width) / 2.0f;
+    float y_center = ((float)height) / 2.0f;
+    float x_offset = x_pos - x_center;
+    float y_offset = y_center - y_pos;
     process_mouse_movement_by_offset(&cam, x_offset, y_offset, true);
+
+    glfwSetCursorPos(window, x_center, y_center);
 }
 
 static void scroll_callback(GLFWwindow *window, double x_offset, double y_offset)
@@ -268,9 +300,9 @@ GLFWwindow *init_opengl(init_func_t *init_func)
         exit(EXIT_FAILURE);
     }
 
-    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetKeyCallback(window, key_callback);
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
