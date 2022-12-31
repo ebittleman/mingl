@@ -13,7 +13,7 @@
 #include "camera.h"
 #include "entities.h"
 #include "linmath.h"
-#include "shader_util.h"
+#include "opengl_util.h"
 #include "shaders/shaders.h"
 #include "types.h"
 

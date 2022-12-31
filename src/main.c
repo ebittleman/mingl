@@ -14,7 +14,7 @@
 #include "opengl.h"
 #include "entities.h"
 #include "linmath.h"
-#include "shader_util.h"
+#include "opengl_util.h"
 #include "types.h"
 #include "shaders/shaders.h"
 #include "scenes/scenes.h"
@@ -26,9 +26,10 @@ INITIALIZE_ENTITY_STORAGE(mingl)
 light positional_light = {
     {0.0f, 5.0f, 5.f},
     {1.0f, 1.0f, 1.0f},
-    {0.8f, 0.8f, 0.8f},
-    {0.5f, 0.5f, 0.5f},
-    {0.5f, 0.5f, 0.5f},
+
+    {1.0f, 1.0f, 1.0f},
+    {1.0f, 1.0f, 1.0f},
+    {1.0f, 1.0f, 1.0f},
 };
 // light positional_light = {
 //     {0.0f, 5.0f, 5.f},
@@ -49,6 +50,11 @@ static slice strings = {0, 0, sizeof(char), NULL};
 
 int list_files(string dir_name, slice *files);
 
+void container_update(scene *self, float dt, float time)
+{
+    mat4x4_translate(self->current_position, 0.0f, -2.0f, 0.0f);
+}
+
 int init(GLFWwindow *window)
 {
     // create entity tables
@@ -60,16 +66,22 @@ int init(GLFWwindow *window)
     // default shader
     shader shader1 = phong_shader();
     append_slice(&shaders, &shader1);
-    shader *root_shader = get_slice_item(&shaders, 0);
+    shader *root_shader = get_slice_item(&shaders, shaders.len - 1);
 
     // directional light shader
     shader shader2 = lamp_shader();
     append_slice(&shaders, &shader2);
-    shader *lamp_shader = get_slice_item(&shaders, 1);
+    shader *lamp_shader = get_slice_item(&shaders, shaders.len - 1);
+
+    // textured shader
+    shader shader3 = textured_shader();
+    append_slice(&shaders, &shader3);
+    shader *textured_shader = get_slice_item(&shaders, shaders.len - 1);
 
     // bind materials to shader instances
     materials = new_slice(sizeof(material));
 
+    // debug material
     phong_params *material2_params = malloc(sizeof(phong_params));
     material2_params->phong_material = &phong_materials[PHONG_OBSIDIAN];
     material2_params->light = &positional_light;
@@ -78,11 +90,20 @@ int init(GLFWwindow *window)
     append_slice(&materials, &material2);
     material *debug_material = get_slice_item(&materials, materials.len - 1);
 
+    // lamp material
     lamp_shader_params *material3_params = malloc(sizeof(lamp_shader_params));
     material3_params->light = &positional_light;
     material material3 = lamp_material(lamp_shader, material3_params);
     append_slice(&materials, &material3);
     material *lamp_material = get_slice_item(&materials, materials.len - 1);
+
+    // boc texture
+    textured_shader_params *material4_params = malloc(sizeof(textured_shader_params));
+    GLuint container_id = loadTexture("assets/textures/container2.png");
+    material4_params->texture_id = container_id;
+    material material4 = textured_material(textured_shader, material4_params);
+    append_slice(&materials, &material4);
+    material *container_material = get_slice_item(&materials, materials.len - 1);
 
     // load in static objects
     slice files = new_slice(sizeof(size_t));
@@ -122,6 +143,12 @@ int init(GLFWwindow *window)
     scene *lamp;
     mingl_scene_factory(&lamp);
     lamp_scene(lamp, &positional_light, lamp_material);
+
+    // register a box into the world
+    scene *box;
+    mingl_scene_factory(&box);
+    lamp_scene(box, NULL, container_material);
+    box->update = &container_update;
 
     // initialize all scenes
     for (size_t i = 0; i < mingl_scenes.len; i++)

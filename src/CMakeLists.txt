@@ -17,6 +17,7 @@ target_include_directories(mingl PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/scenes"
     "${GLFW_SOURCE_DIR}/include"
     "${mingl_SOURCE_DIR}/third_party/GLAD/include"
+    "${mingl_SOURCE_DIR}/third_party/stb/include"
 )
 
 target_sources(mingl PRIVATE

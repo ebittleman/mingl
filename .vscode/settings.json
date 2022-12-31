@@ -46,7 +46,7 @@
         "geometry.h": "c",
         "camera.h": "c",
         "shaders.h": "c",
-        "shader_util.h": "c"
+        "opengl_util.h": "c"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",

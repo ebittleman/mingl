@@ -23,6 +23,10 @@ static void debug_vec3(vec3 v)
 {
     printf("x: %f, y: %f, z: %f\n", v[0], v[1], v[2]);
 }
+static void debug_vec4(vec4 v)
+{
+    printf("x: %f, y: %f, z: %f, w: %f\n", v[0], v[1], v[2], v[3]);
+}
 
 static void debug_mat(mat4x4 m)
 {
@@ -37,6 +41,12 @@ static void debug_bounds(float bounds[6])
     printf("x:%f = %f - %f\n", bounds[3] - bounds[0], bounds[3], bounds[0]);
     printf("y:%f = %f - %f\n", bounds[4] - bounds[1], bounds[4], bounds[1]);
     printf("z:%f = %f - %f\n", bounds[5] - bounds[2], bounds[5], bounds[2]);
+}
+
+#define RADS 0.01745329251994329576923690768489
+static float radians(float degrees)
+{
+    return degrees * RADS;
 }
 
 #endif

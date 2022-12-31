@@ -34,6 +34,36 @@ phong_material phong_materials[] = {
      1.0f,
      HighlightOn},
 
+    // Pearl
+    {{0.25f, 0.20725f, 0.20725f},
+     {1.0f, 0.829f, 0.829f},
+     {0.296648f, 0.296648f, 0.296648f},
+     0.088f * 128.0f,
+     1.0f,
+     {1.0f, 1.0f, 1.0f},
+     1.0f,
+     HighlightOn},
+
+    // Ruby
+    {{0.1745f, 0.01175f, 0.01175f},
+     {0.61424f, 0.04136f, 0.04136f},
+     {0.727811f, 0.626959f, 0.626959f},
+     0.6f * 128.0f,
+     1.0f,
+     {1.0f, 1.0f, 1.0f},
+     1.0f,
+     HighlightOn},
+
+    // Turquoise
+    {{0.1f, 0.18725f, 0.1745f},
+     {0.396f, 0.74151f, 0.69102f},
+     {0.297254f, 0.30829f, 0.306678f},
+     0.1f * 128.0f,
+     1.0f,
+     {1.0f, 1.0f, 1.0f},
+     1.0f,
+     HighlightOn},
+
     // Yellow Rubber
     {{0.05f, 0.05f, 0.0f},
      {0.5f, 0.5f, 0.4f},
@@ -51,6 +81,9 @@ enum PhongMaterialIDS
     PHONG_EMERALD = 0,
     PHONG_JADE,
     PHONG_OBSIDIAN,
+    PHONG_PEARL,
+    PHONG_RUBY,
+    PHONG_TURQUOISE,
 
     PHONG_YELLOW_RUBBER,
 

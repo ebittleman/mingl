@@ -5,8 +5,7 @@
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
 #include "linmath.h"
-
-#define RADS 0.01745329251994329576923690768489
+#include "types.h"
 
 // Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
 enum Camera_Movement
@@ -25,11 +24,6 @@ static const float SENSITIVITY = 0.1f;
 static const float ZOOM = 45.0f;
 
 // An abstract camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
-
-static float radians(float degrees)
-{
-    return degrees * RADS;
-}
 
 typedef struct _camera
 {

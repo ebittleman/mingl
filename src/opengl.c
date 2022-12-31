@@ -2,6 +2,13 @@
 
 static camera cam;
 
+void framebuffer_size_callback(GLFWwindow *window, int width, int height)
+{
+    // make sure the viewport matches the new window dimensions; note that width and
+    // height will be significantly larger than specified on retina displays.
+    glViewport(0, 0, width, height);
+}
+
 void calculate_projection_matrix(GLFWwindow *window, mat4x4 *p, float degrees)
 {
     float ratio;
@@ -9,8 +16,6 @@ void calculate_projection_matrix(GLFWwindow *window, mat4x4 *p, float degrees)
 
     glfwGetFramebufferSize(window, &width, &height);
     ratio = width / (float)height;
-
-    glViewport(0, 0, width, height);
 
     // mat4x4_ortho(*p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
     mat4x4_perspective(*p, radians(degrees), ratio, 0.1f, 1000.0f);
@@ -229,8 +234,8 @@ void render(mat4x4 projection, camera cam, double time, slice shaders, slice sce
     {
         glUseProgram(shader_data[i].id);
 
-        glUniformMatrix4fv(shader_data[i].uniforms[U_VIEW], 1, GL_FALSE, (const GLfloat *)&view);
-        glUniformMatrix4fv(shader_data[i].uniforms[U_PROJECTION], 1, GL_FALSE, (const GLfloat *)&projection);
+        glUniformMatrix4fv(shader_data[i].uniforms[U_VIEW], 1, GL_FALSE, (const GLfloat *)view);
+        glUniformMatrix4fv(shader_data[i].uniforms[U_PROJECTION], 1, GL_FALSE, (const GLfloat *)projection);
         glUniform3fv(shader_data[i].uniforms[U_VIEW_POSITION], 1, cam.position);
         glUniform1f(shader_data[i].uniforms[U_TIME], (float)time);
     }
@@ -268,6 +273,7 @@ GLFWwindow *init_opengl(init_func_t *init_func)
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetKeyCallback(window, key_callback);
     glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     gladLoadGL(glfwGetProcAddress);
     glfwSwapInterval(1);
 

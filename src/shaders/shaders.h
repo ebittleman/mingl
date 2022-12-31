@@ -8,7 +8,7 @@
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
 #include "linmath.h"
-#include "shader_util.h"
+#include "opengl_util.h"
 #include "types.h"
 
 // default uniforms
@@ -155,5 +155,13 @@ typedef struct _lamp_shader_params
 
 shader lamp_shader();
 material lamp_material(shader *shader, lamp_shader_params *params);
+
+typedef struct _textured_shader_params
+{
+    GLuint texture_id;
+} textured_shader_params;
+
+shader textured_shader();
+material textured_material(shader *shader, textured_shader_params *params);
 
 #endif
