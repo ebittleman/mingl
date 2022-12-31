@@ -27,4 +27,12 @@ target_sources(mingl PRIVATE
     ${SCENES} ${SCENES_HEADERS}
     ${SHADERS} ${SHADERS_HEADERS}
 )
-target_link_libraries(mingl PUBLIC opengl32 gdi32 m glfw GLAD2)
+
+set(LIBS OpenGL::GL m glfw GLAD2)
+
+if (MINGL_BUILD_WIN32)
+    message(STATUS "Including Win32 support")
+    list(APPEND LIBS gdi32)
+endif()
+
+target_link_libraries(mingl PUBLIC ${LIBS})
