@@ -7,6 +7,7 @@
                 "${workspaceFolder}/third_party/GLAD/include",
                 "${workspaceFolder}/third_party/glfw/include",
                 "${workspaceFolder}/third_party/stb/include",
+                "${workspaceFolder}/third_party/linmath/include",
                 "${workspaceFolder}/src",
                 "C:/msys64/clang64/include",
                 "C:/msys64/clang64/lib/clang/15.0.3/include",

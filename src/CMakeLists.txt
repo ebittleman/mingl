@@ -16,8 +16,9 @@ target_include_directories(mingl PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/geometry"
     "${CMAKE_CURRENT_SOURCE_DIR}/scenes"
     "${GLFW_SOURCE_DIR}/include"
-    "${mingl_SOURCE_DIR}/third_party/GLAD/include"
+    "${GLAD2_SOURCE_DIR}/include"
     "${mingl_SOURCE_DIR}/third_party/stb/include"
+    "${mingl_SOURCE_DIR}/third_party/linmath/include"
 )
 
 target_sources(mingl PRIVATE
@@ -26,4 +27,4 @@ target_sources(mingl PRIVATE
     ${SCENES} ${SCENES_HEADERS}
     ${SHADERS} ${SHADERS_HEADERS}
 )
-target_link_libraries(mingl PUBLIC opengl32 gdi32 m glfw)
+target_link_libraries(mingl PUBLIC opengl32 gdi32 m glfw GLAD2)

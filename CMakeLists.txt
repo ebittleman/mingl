@@ -20,5 +20,6 @@ find_package(GLFW REQUIRED)
 #--------------------------------------------------------------------
 # Add subdirectories
 #--------------------------------------------------------------------
+add_subdirectory(third_party/GLAD)
 add_subdirectory(src)
-add_subdirectory(tests)
+# add_subdirectory(tests)
