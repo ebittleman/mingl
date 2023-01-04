@@ -18,6 +18,8 @@ Little playground for writing some C and drawing in 3D. It should be reasonably 
 * [utest.h](https://github.com/sheredom/utest.h): A simple one header solution to unit testing for C/C++.
 * [stb_image.h](https://github.com/nothings/stb): image loader single-file public domain (or MIT licensed) libraries for C/C++
 
+General Place to grab small reusable things: https://github.com/nothings/single_file_libs
+Source of OpenGL and other graphics examples: https://learnopengl.com
 
 ## Getting Started
 

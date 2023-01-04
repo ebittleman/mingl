@@ -28,4 +28,4 @@ add_subdirectory(third_party/GLAD)
 add_subdirectory(src)
 
 # TODO: cut tests over to utest.h
-# add_subdirectory(tests)
+add_subdirectory(tests)

@@ -1,7 +1,11 @@
 #ifndef DATA_STRUCTURES_H
 #define DATA_STRUCTURES_H
 
+#include <stdbool.h>
 #include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <strings.h>
 #include "linmath.h"
 
 #define DEFAULT_SLICE_CAP 10
@@ -43,5 +47,20 @@ void append_slice_size_t(slice *s, size_t value);
 
 DEFINE_SLICE_TYPE(char);
 DEFINE_SLICE_TYPE(size_t);
+
+#define _TREE_B 255
+#define TREE_THRESHOLD 254
+typedef struct _tree_node
+{
+    void *p[_TREE_B];
+    const char *keys[_TREE_B];
+    bool is_leaf;
+    unsigned int len;
+
+} tree_node;
+
+size_t key_find(const char *key, size_t n, const char **keys);
+void insert(tree_node **root, const char *key, void *data);
+tree_node *search(char *key, tree_node *root);
 
 #endif

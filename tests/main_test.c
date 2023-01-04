@@ -14,7 +14,7 @@ register_func_t *registrations[] = {
 int main()
 {
     int err;
-    char error_buffer[1024];
+    char error_buffer[4096];
 
     slice tests_suites = {0, 0, sizeof(test_suite), NULL};
     int num_suites = sizeof(registrations) / sizeof(register_func_t *);
@@ -35,8 +35,9 @@ int main()
             test_case test = suites[i].tests[x];
 
             printf("Running: %s\n", test.name);
+            memset(error_buffer, 0, sizeof(error_buffer));
             err = test.func((char *)error_buffer);
-            if (err > 0)
+            if (err != 0)
             {
                 printf("FAIL: %s\n\t%s\n", test.name, error_buffer);
                 return 1;

@@ -16,12 +16,16 @@ int test_new_slice(char *error_buffer);
 int test_expand_slice(char *error_buffer);
 int test_append_slice(char *error_buffer);
 int test_get_slice_item(char *error_buffer);
+int test_key_find(char *error_buffer);
+int test_key_insert(char *error_buffer);
 
 test_case data_structure_tests[] = {
     {"test_new_slice", test_new_slice},
     {"test_expand_slice", test_expand_slice},
     {"test_append_slice", test_append_slice},
     {"test_get_slice_item", test_get_slice_item},
+    {"test_key_find", test_key_find},
+    {"test_key_insert", test_key_insert},
 };
 
 void register_data_structure_tests(slice *tests_suites)
@@ -183,4 +187,82 @@ int test_get_slice_item(char *error_buffer)
     return util_cmp_slice(
         error_buffer, actual, expected_len, expected_cap,
         expected_size, expected_data);
+}
+
+int test_key_find(char *error_buffer)
+{
+    const char *keys[] = {
+        "along",
+        "list",
+        "memory",
+        // "of",
+        // "truth",
+        // "xylophone",
+        // "year",
+        // "zebra",
+    };
+    // unsigned int len = 8;
+    unsigned int len = 3;
+    tree_node tree = {
+        {0},
+        {0},
+        false,
+        len,
+    };
+    memcpy(tree.keys, keys, sizeof(keys));
+
+    size_t index = key_find("before", tree.len, tree.keys);
+    if (index != 1)
+    {
+        sprintf(error_buffer, "expected: %d, got: %llu\n", 1, index);
+        return 1;
+    }
+    return 0;
+}
+
+int test_key_insert(char *error_buffer)
+{
+    tree_node tree = {0};
+    tree.is_leaf = true;
+    char bytes[] = {0xFF, 0xDE};
+
+    tree_node *root = &tree;
+
+    char line_buffer[32] = {0};
+    char *key = NULL;
+    for (int i = 1; i <= 4096; i++)
+    {
+        sprintf(line_buffer, "id:%.5d", i);
+        insert(&root, line_buffer, &bytes);
+    }
+
+    tree_node *ptr = search("id:02000", root);
+    size_t count = 0, nodes = 0, low_count = 0;
+    while (ptr != NULL)
+    {
+        nodes++;
+        if (ptr->len < _TREE_B / 2)
+        {
+
+            sprintf(line_buffer, "\nlow child count '%s'=%d", ptr->keys[0], ptr->len);
+            strcat(error_buffer, line_buffer);
+            low_count++;
+        }
+        for (size_t i = 0; i < ptr->len; i++)
+        {
+            count++;
+        }
+
+        ptr = ptr->p[TREE_THRESHOLD];
+    }
+    sprintf(line_buffer, "\nnum nodes: %llu", nodes);
+    strcat(error_buffer, line_buffer);
+    sprintf(line_buffer, "\nnum items: %llu", count);
+    strcat(error_buffer, line_buffer);
+
+    if (low_count > 0 || nodes != 17 || count != 2191)
+    {
+        return -1;
+    }
+    return 0;
 }
