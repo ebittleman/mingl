@@ -219,7 +219,7 @@ int test_key_find(char *error_buffer)
 int test_key_insert(char *error_buffer)
 {
     char line_buffer[32] = {0};
-    char bytes[] = {0xFF, 0xDE};
+    const char *bytes = "hello data";
 
     tree_node *root = malloc_node(&global_node_pool);
 
@@ -229,7 +229,8 @@ int test_key_insert(char *error_buffer)
     for (int i = 1; i <= 4096; i++)
     {
         sprintf(line_buffer, "id%.5d", i);
-        insert(&root, line_buffer, &bytes);
+
+        insert(&root, line_buffer, (void *)bytes);
     }
 
     tree_node *ptr = search("id02000", root);
@@ -246,6 +247,7 @@ int test_key_insert(char *error_buffer)
         }
         for (size_t i = 0; i < ptr->len; i++)
         {
+            // printf("%s\n", (char *)ptr->p[i]);
             count++;
         }
 
