@@ -1,6 +1,8 @@
 
 add_executable(mingl)
 
+set_property(TARGET mingl PROPERTY COMPILE_WARNING_AS_ERROR ON)
+
 FILE(GLOB SOURCES *.c)
 FILE(GLOB SOURCES_HEADERS *.h)
 FILE(GLOB GEOMETRY geometry/*.c)

@@ -103,7 +103,17 @@ void reset_slice(slice *s, int size, int len, int cap)
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-bool is_leaf(struct _tree_node *node)
+node_pool global_node_pool;
+
+tree_node *malloc_node(node_pool *np)
+{
+    tree_node *node = &np->nodes[np->len];
+    memset(node, 0, sizeof(tree_node));
+    np->len += 1;
+    return node;
+}
+
+bool is_leaf(tree_node *node)
 {
     return node->is_leaf;
 }
@@ -127,10 +137,10 @@ unsigned int leaf_search(const char *key, tree_node *node, tree_node *path[])
         tree_node *next = NULL;
         for (size_t i = 0; i < cursor->len; i++)
         {
-            int result = strcmp(key, cursor->keys[i]);
+            int result = strcmp(key, &cursor->keys[i * KEY_WIDTH]);
             if (result == 0)
             {
-                struct _tree_node *child = cursor->p[i];
+                tree_node *child = to_ptr(tree_node, cursor->p[i]);
                 next = child;
                 break;
             }
@@ -138,7 +148,7 @@ unsigned int leaf_search(const char *key, tree_node *node, tree_node *path[])
             if (result < 0)
             {
                 size_t idx = i == 0 ? 0 : i - 1;
-                struct _tree_node *child = cursor->p[idx];
+                tree_node *child = to_ptr(tree_node, cursor->p[idx]);
                 next = child;
                 break;
             }
@@ -146,7 +156,7 @@ unsigned int leaf_search(const char *key, tree_node *node, tree_node *path[])
 
         if (next == NULL)
         {
-            cursor = cursor->p[cursor->len - 1];
+            cursor = to_ptr(tree_node, cursor->p[cursor->len - 1]);
             continue;
         }
 
@@ -164,13 +174,13 @@ tree_node *search(char *key, tree_node *root)
     return leaf;
 }
 
-size_t key_find(const char *key, size_t n, const char **keys)
+size_t key_find(const char *key, size_t n, const char *keys)
 {
     size_t start = 0, mid = 0, end = n;
     while (start < end)
     {
         mid = ((start + end) / 2);
-        int result = strcmp(keys[mid], key);
+        int result = strcmp(&keys[mid * KEY_WIDTH], key);
 
         if (result < 0)
         {
@@ -186,20 +196,19 @@ size_t key_find(const char *key, size_t n, const char **keys)
 
 tree_node *split_node(tree_node *original)
 {
-    tree_node *new_node = malloc(sizeof(tree_node));
-    memset(new_node, 0, sizeof(tree_node));
+    tree_node *new_node = malloc_node(&global_node_pool);
     int mid = original->len / 2;
     void *start = &original->p[mid];
 
     new_node->len = original->len - mid;
-    memcpy(new_node->p, start, new_node->len * sizeof(tree_node *));
+    memcpy(new_node->p, start, new_node->len * sizeof(new_node->p[0]));
 
-    start = &original->keys[mid];
-    memcpy(new_node->keys, start, new_node->len * sizeof(const char *));
+    start = &original->keys[mid * KEY_WIDTH];
+    memcpy(new_node->keys, start, new_node->len * sizeof(new_node->keys[0]));
     new_node->is_leaf = original->is_leaf;
 
-    original->p[TREE_THRESHOLD] = new_node;
-    original->keys[TREE_THRESHOLD] = NULL;
+    to_rel(original->p[TREE_THRESHOLD], new_node);
+    memset(&original->keys[TREE_THRESHOLD * KEY_WIDTH], 0, KEY_WIDTH);
     original->len = mid;
 
     return new_node;
@@ -211,21 +220,25 @@ void _insert(tree_node *node, const char *key, void *data)
     for (size_t i = TREE_THRESHOLD - 1; i > index; i--)
     {
         node->p[i] = node->p[i - 1];
-        node->keys[i] = node->keys[i - 1];
+        strcpy(&node->keys[i * KEY_WIDTH], &node->keys[(i - 1) * KEY_WIDTH]);
         node->p[i] = node->p[i - 1];
     }
 
-    char *trimmed_key = malloc(strlen(key) + 1);
-    strcpy(trimmed_key, key);
-
-    node->keys[index] = trimmed_key;
-    node->p[index] = data;
+    strcpy(&node->keys[index * KEY_WIDTH], key);
+    if (node->is_leaf)
+    {
+        node->p[index] = (uintptr_t)data;
+    }
+    else
+    {
+        to_rel(node->p[index], data);
+    }
     node->len++;
 }
 
 void insert(tree_node **root, const char *key, void *data)
 {
-    tree_node *path[10] = {0};
+    tree_node *path[100] = {0};
     unsigned int path_len = leaf_search(key, *root, path);
     tree_node *leaf = path[path_len - 1];
     _insert(leaf, key, data);
@@ -240,9 +253,8 @@ void insert(tree_node **root, const char *key, void *data)
             tree_node *parent;
             if (i == 0)
             {
-                parent = malloc(sizeof(tree_node));
-                memset(parent, 0, sizeof(tree_node));
-                _insert(parent, cursor->keys[0], cursor);
+                parent = malloc_node(&global_node_pool);
+                _insert(parent, &cursor->keys[0], cursor);
                 *root = parent;
             }
             else
@@ -250,7 +262,7 @@ void insert(tree_node **root, const char *key, void *data)
                 parent = path[i - 1];
             }
 
-            _insert(parent, new_node->keys[0], new_node);
+            _insert(parent, &new_node->keys[0], new_node);
             parent->is_leaf = false;
         }
     }

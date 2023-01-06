@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <strings.h>
 #include "linmath.h"
 
@@ -49,18 +50,31 @@ DEFINE_SLICE_TYPE(char);
 DEFINE_SLICE_TYPE(size_t);
 
 #define _TREE_B 255
-#define TREE_THRESHOLD 254
+#define TREE_THRESHOLD _TREE_B - 1
+#define KEY_WIDTH 8
+#define KEY_LEN (_TREE_B) * (KEY_WIDTH)
 typedef struct _tree_node
 {
-    void *p[_TREE_B];
-    const char *keys[_TREE_B];
     bool is_leaf;
+    uintptr_t p[_TREE_B];
+    char keys[KEY_LEN];
     unsigned int len;
 
 } tree_node;
 
-size_t key_find(const char *key, size_t n, const char **keys);
+typedef struct
+{
+    tree_node nodes[8192];
+    size_t len;
+} node_pool;
+extern node_pool global_node_pool;
+
+size_t key_find(const char *key, size_t n, const char *keys);
 void insert(tree_node **root, const char *key, void *data);
 tree_node *search(char *key, tree_node *root);
+tree_node *malloc_node(node_pool *np);
+
+#define to_rel(ptr, ref) ptr = (uintptr_t)(((char *)ref) - ((char *)(&ptr)))
+#define to_ptr(TYPE, ref) (TYPE *)((ref == 0) ? NULL : ((ref) + ((char *)(&ref))))
 
 #endif

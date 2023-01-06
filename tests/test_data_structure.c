@@ -192,29 +192,25 @@ int test_get_slice_item(char *error_buffer)
 int test_key_find(char *error_buffer)
 {
     const char *keys[] = {
-        "along",
-        "list",
-        "memory",
-        // "of",
-        // "truth",
-        // "xylophone",
-        // "year",
-        // "zebra",
+        "along\0\0",
+        "list\0\0\0",
+        "memory\0",
+        "of\0\0\0\0\0",
+        "truth\0\0",
+        "xylopho",
+        "year\0\0\0",
+        "zebra\0\0",
     };
-    // unsigned int len = 8;
-    unsigned int len = 3;
-    tree_node tree = {
-        {0},
-        {0},
-        false,
-        len,
-    };
-    memcpy(tree.keys, keys, sizeof(keys));
+    tree_node tree = {0};
+    tree.len = sizeof(keys) / sizeof(const char *);
 
+    memcpy(tree.keys, keys[0], sizeof(keys));
+
+    size_t expected_index = 1;
     size_t index = key_find("before", tree.len, tree.keys);
-    if (index != 1)
+    if (index != expected_index)
     {
-        sprintf(error_buffer, "expected: %d, got: %llu\n", 1, index);
+        sprintf(error_buffer, "expected: %llu, got: %llu\n", expected_index, index);
         return 1;
     }
     return 0;
@@ -222,21 +218,21 @@ int test_key_find(char *error_buffer)
 
 int test_key_insert(char *error_buffer)
 {
-    tree_node tree = {0};
-    tree.is_leaf = true;
+    char line_buffer[32] = {0};
     char bytes[] = {0xFF, 0xDE};
 
-    tree_node *root = &tree;
+    tree_node *root = malloc_node(&global_node_pool);
 
-    char line_buffer[32] = {0};
+    root->is_leaf = true;
+
     char *key = NULL;
     for (int i = 1; i <= 4096; i++)
     {
-        sprintf(line_buffer, "id:%.5d", i);
+        sprintf(line_buffer, "id%.5d", i);
         insert(&root, line_buffer, &bytes);
     }
 
-    tree_node *ptr = search("id:02000", root);
+    tree_node *ptr = search("id02000", root);
     size_t count = 0, nodes = 0, low_count = 0;
     while (ptr != NULL)
     {
@@ -244,7 +240,7 @@ int test_key_insert(char *error_buffer)
         if (ptr->len < _TREE_B / 2)
         {
 
-            sprintf(line_buffer, "\nlow child count '%s'=%d", ptr->keys[0], ptr->len);
+            sprintf(line_buffer, "\nlow child count '%s'=%d", &ptr->keys[0], ptr->len);
             strcat(error_buffer, line_buffer);
             low_count++;
         }
@@ -253,7 +249,13 @@ int test_key_insert(char *error_buffer)
             count++;
         }
 
-        ptr = ptr->p[TREE_THRESHOLD];
+        if (ptr->p[TREE_THRESHOLD] == 0)
+        {
+            ptr = NULL;
+            continue;
+        }
+
+        ptr = to_ptr(tree_node, ptr->p[TREE_THRESHOLD]);
     }
     sprintf(line_buffer, "\nnum nodes: %llu", nodes);
     strcat(error_buffer, line_buffer);
