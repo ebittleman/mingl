@@ -27,10 +27,8 @@ out vec3 normalInterp;
 void main() {
     gl_Position = mvp_matrix * vec4(position, 1.0);
 
-    uvInterp = uv;
-    normalInterp = normal_matrix * normal;
-    // colorInterp = vec4(0.6f, 0.6f, 0.6f, 1.0f);
     colorInterp = vec4(normalize(normalInterp), 1.0f);
-
+    uvInterp = uv;
     fragPosInterp = vec3(model_matrix * vec4(position, 1.0));
+    normalInterp = normal_matrix * normal;
 }

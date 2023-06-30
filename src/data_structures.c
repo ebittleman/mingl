@@ -221,7 +221,6 @@ void _insert(tree_node *node, const char *key, void *data)
     {
         node->p[i] = node->p[i - 1];
         strcpy(&node->keys[i * KEY_WIDTH], &node->keys[(i - 1) * KEY_WIDTH]);
-        node->p[i] = node->p[i - 1];
     }
 
     strcpy(&node->keys[index * KEY_WIDTH], key);

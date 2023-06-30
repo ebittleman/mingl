@@ -1,0 +1,8 @@
+set(BUILD_WITHOUT_LAPACK ON)
+set(BUILD_TESTING OFF)
+set(BUILD_STATIC_LIBS ON)
+set(BUILD_SHARED_LIBS OFF)
+set(BUILD_TESTING OFF)
+
+
+add_subdirectory(third_party/OpenBLAS)

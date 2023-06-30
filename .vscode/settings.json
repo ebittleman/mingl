@@ -46,10 +46,19 @@
         "geometry.h": "c",
         "camera.h": "c",
         "shaders.h": "c",
-        "opengl_util.h": "c"
+        "opengl_util.h": "c",
+        "cblas.h": "c",
+        "openblas_config.h": "c",
+        "mat.h": "c",
+        "math.h": "c"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",
     "lldb.dereferencePointers": true,
-    "lldb.consoleMode": "commands"
+    "lldb.consoleMode": "commands",
+    "cSpell.words": [
+        "blasint",
+        "CORENAME",
+        "OPENBLAS"
+    ]
 }

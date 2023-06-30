@@ -21,6 +21,8 @@ target_include_directories(mingl PUBLIC
     "${GLAD2_SOURCE_DIR}/include"
     "${mingl_SOURCE_DIR}/third_party/stb/include"
     "${mingl_SOURCE_DIR}/third_party/linmath/include"
+    "${CMAKE_BINARY_DIR}/generated"
+    "${CMAKE_BINARY_DIR}"
 )
 
 target_sources(mingl PRIVATE
@@ -30,7 +32,7 @@ target_sources(mingl PRIVATE
     ${SHADERS} ${SHADERS_HEADERS}
 )
 
-set(LIBS OpenGL::GL m glfw GLAD2)
+set(LIBS OpenGL::GL m glfw GLAD2 openblas)
 
 if (MINGL_BUILD_WIN32)
     message(STATUS "Including Win32 support")

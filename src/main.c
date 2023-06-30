@@ -21,6 +21,8 @@
 
 #include "materials.h"
 
+#include "cblas.h"
+
 INITIALIZE_ENTITY_STORAGE(mingl)
 
 light positional_light = {

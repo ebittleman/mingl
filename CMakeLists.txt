@@ -21,6 +21,9 @@ set(GLFW_DIR .)
 find_package(GLFW REQUIRED)
 find_package(OpenGL REQUIRED)
 
+set(OpenBLAS_DIR .)
+find_package(OpenBLAS REQUIRED)
+
 #--------------------------------------------------------------------
 # Add subdirectories
 #--------------------------------------------------------------------

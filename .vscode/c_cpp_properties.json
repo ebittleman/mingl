@@ -8,26 +8,26 @@
                 "${workspaceFolder}/third_party/glfw/include",
                 "${workspaceFolder}/third_party/stb/include",
                 "${workspaceFolder}/third_party/linmath/include",
+                "${workspaceFolder}/third_party/quickblas",
                 "${workspaceFolder}/src",
+                "${workspaceFolder}/build/generated",
+                "${workspaceFolder}/build",
                 "C:/msys64/clang64/include",
                 "C:/msys64/clang64/lib/clang/15.0.3/include",
-                // "C:/msys64/ucrt64/include",
-                // "C:/msys64/ucrt64/lib/gcc/x86_64-w64-mingw32/12.2.0/include",
+                "${workspaceFolder}/**",
                 "${default}"
             ],
             "defines": [
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE",
-                "__x86_64"
+                "__x86_64",
+                "MAT_IMPLEMENTATION"
             ],
-            "windowsSdkVersion": "10.0.19041.0",
-            "compilerPath": "C:/msys64/clang64/bin/clang.exe",
-            // "compilerPath": "C:/msys64/ucrt64/bin/gcc.exe",
-            "cStandard": "c17",
-            "cppStandard": "c++17",
             "intelliSenseMode": "windows-clang-x64",
-            "configurationProvider": "ms-vscode.cmake-tools"
+            "compilerPath": "C:/msys64/clang64/bin/clang.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17"
         }
     ],
     "version": 4
