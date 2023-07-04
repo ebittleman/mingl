@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <strings.h>
 
 #include "data_structures.h"
 

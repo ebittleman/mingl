@@ -50,7 +50,8 @@
         "cblas.h": "c",
         "openblas_config.h": "c",
         "mat.h": "c",
-        "math.h": "c"
+        "math.h": "c",
+        "dirent.h": "c"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",
@@ -60,5 +61,6 @@
         "blasint",
         "CORENAME",
         "OPENBLAS"
-    ]
+    ],
+    "cmake.autoSelectActiveFolder": false
 }

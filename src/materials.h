@@ -1,6 +1,5 @@
 #ifndef MATERIALS_C
 #define MATERIALS_C
-#include "shaders/shaders.h"
 
 // http://devernay.free.fr/cours/opengl/materials.html
 phong_material phong_materials[] = {

@@ -1,4 +1,9 @@
 
+#include <stdlib.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <strings.h>
+
 #include "data_structures.h"
 
 slice new_slice(size_t size)

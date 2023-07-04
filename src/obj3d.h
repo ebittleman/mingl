@@ -1,7 +1,8 @@
-#include <stddef.h>
+// #include <stddef.h>
 
-#include "types.h"
-#include "linmath.h"
+// #include "types.h"
+// #include <linmath.h>
+#include "data_structures.h"
 #include "entities.h"
 
 typedef void(line_callback_t)(slice *, char *);

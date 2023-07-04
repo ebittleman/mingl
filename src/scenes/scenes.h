@@ -3,13 +3,9 @@
 #define _SCENES_H
 
 #include <stdbool.h>
-#include <stdlib.h>
-#include <math.h>
 
 #include "types.h"
 #include "entities.h"
-#include "shaders/shaders.h"
-#include "geometry/geometry.h"
 
 void static_object(scene *scene, model **model, material *base_material,
                    material *debug_material, int x, int count,

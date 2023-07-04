@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "shaders.h"
 
 const char *lamp_vert_file = "src/shaders/lamp/lamp.vert";

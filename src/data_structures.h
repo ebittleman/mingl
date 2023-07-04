@@ -2,12 +2,7 @@
 #define DATA_STRUCTURES_H
 
 #include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <stdint.h>
-#include <strings.h>
-#include "linmath.h"
 
 #define DEFAULT_SLICE_CAP 10
 typedef struct _slice

@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "shaders.h"
 
 const char *textured_vert_file = "src/shaders/textured/textured.vert";

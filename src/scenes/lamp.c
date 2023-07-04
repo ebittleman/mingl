@@ -1,4 +1,7 @@
+#include <stdlib.h>
+
 #include "scenes.h"
+#include "geometry/geometry.h"
 
 typedef struct _lamp_params
 {

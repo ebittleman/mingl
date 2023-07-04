@@ -1,6 +1,10 @@
 
-#include "scenes.h"
+#include <stdlib.h>
+
 #include <cblas.h>
+
+#include "geometry.h"
+#include "scenes.h"
 
 typedef struct _static_object_params
 {

@@ -22,7 +22,8 @@
                 "UNICODE",
                 "_UNICODE",
                 "__x86_64",
-                "MAT_IMPLEMENTATION"
+                "MAT_IMPLEMENTATION",
+                "__clang__"
             ],
             "intelliSenseMode": "windows-clang-x64",
             "compilerPath": "C:/msys64/clang64/bin/clang.exe",

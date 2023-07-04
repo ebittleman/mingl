@@ -1,5 +1,9 @@
-#include "opengl.h"
+#include <stdlib.h>
+
 #include <cblas.h>
+
+#include "opengl.h"
+#include "camera.h"
 
 static camera cam;
 
@@ -247,16 +251,14 @@ void render_scene(shader current_shader, mat4x4 vp, scene scene)
     model **models_data = (model **)scene.models.data;
 
     mat4x4 mvp;
-    // mat4x4_mul(mvp, vp, scene.current_position);
-
     cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 4, 4, 4, 1.0f,
                 (float *)scene.current_position, 4, (float *)vp, 4, 0.0f, (float *)mvp, 4);
 
-    mat3x3 normal_matrix;
+    mat3x3 normal_matrix; // transforms the normal vector to the transformed vertex position
     mat4x4 inverse_model;
     mat4x4 transpose_model;
     mat4x4_invert(inverse_model, scene.current_position);
-    mat4x4_invert(transpose_model, inverse_model);
+    mat4x4_transpose(transpose_model, inverse_model);
     mat3x3_from_4x4(normal_matrix, transpose_model);
 
     for (size_t i = 0; i < scene.models.len; i++)

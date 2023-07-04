@@ -1,13 +1,6 @@
 #ifndef _SHADER_UTIL_H
 #define _SHADER_UTIL_H
 
-#include <stdbool.h>
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
-
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
 #include <glad/gl.h>
 
 GLuint create_shader_program_from_strings(const char *vertex_shader_str, const char *fragment_shader_str);

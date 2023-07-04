@@ -1,14 +1,11 @@
 #ifndef _SHADERS_H
 #define _SHADERS_H
 
-#include <stdlib.h>
-
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
 #include <glad/gl.h>
-#include "linmath.h"
-#include "opengl_util.h"
+
+#include <linmath.h>
 #include "types.h"
+#include "opengl_util.h"
 
 // default uniforms
 enum Uniforms

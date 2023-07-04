@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "shaders.h"
 
 const char *default_vert_file = "src/shaders/phong/phong.vert";

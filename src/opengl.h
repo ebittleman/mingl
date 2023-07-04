@@ -2,20 +2,11 @@
 #ifndef _MINGL_H
 #define _MINGL_H
 
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#include <glad/gl.h>
 
-#include "camera.h"
 #include "entities.h"
-#include "linmath.h"
-#include "opengl_util.h"
 #include "shaders/shaders.h"
-#include "types.h"
 
 typedef int(init_func_t)(GLFWwindow *window);
 typedef void(update_func_t)(GLFWwindow *window, double time, double dt);

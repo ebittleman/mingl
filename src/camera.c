@@ -1,5 +1,5 @@
-
 #include "camera.h"
+#include "types.h"
 
 void update_camera_vectors(camera *cam);
 

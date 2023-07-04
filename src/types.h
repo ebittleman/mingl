@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#include "linmath.h"
+#include <linmath.h>
 
 #define TAU 6.28318530718
 
@@ -44,9 +44,6 @@ static void debug_bounds(float bounds[6])
 }
 
 #define RADS 0.01745329251994329576923690768489
-static float radians(float degrees)
-{
-    return degrees * RADS;
-}
+#define radians(degrees) (degrees) * RADS
 
 #endif

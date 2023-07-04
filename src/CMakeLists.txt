@@ -11,6 +11,7 @@ FILE(GLOB SCENES scenes/*.c)
 FILE(GLOB SCENES_HEADERS scenes/*.h)
 FILE(GLOB SHADERS shaders/*.c)
 FILE(GLOB SHADERS_HEADERS shaders/*.h)
+FILE(GLOB DEMOS demos/*.c)
 
 
 target_include_directories(mingl PUBLIC
@@ -30,6 +31,7 @@ target_sources(mingl PRIVATE
     ${GEOMETRY} ${GEOMETRY_HEADERS}
     ${SCENES} ${SCENES_HEADERS}
     ${SHADERS} ${SHADERS_HEADERS}
+    ${DEMOS}
 )
 
 set(LIBS OpenGL::GL m glfw GLAD2 openblas)

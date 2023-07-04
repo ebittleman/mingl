@@ -1,11 +1,8 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
 #include <glad/gl.h>
-#include "linmath.h"
-#include "types.h"
+#include <linmath.h>
 
 // Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
 enum Camera_Movement

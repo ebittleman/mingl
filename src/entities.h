@@ -2,8 +2,8 @@
 #define _ENTITIES_H
 
 #include "data_structures.h"
-#include "types.h"
-#include "linmath.h"
+// #include "types.h"
+#include <linmath.h>
 #include "shaders/shaders.h"
 
 #define MAX_BONE_INFLUENCE 4
