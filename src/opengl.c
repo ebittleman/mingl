@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include <cblas.h>
+#include <glad/gl.h>
 
 #include "opengl.h"
 #include "camera.h"

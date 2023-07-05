@@ -51,7 +51,9 @@
         "openblas_config.h": "c",
         "mat.h": "c",
         "math.h": "c",
-        "dirent.h": "c"
+        "dirent.h": "c",
+        "mem.h": "c",
+        "memory.h": "c"
     },
     "lldb.displayFormat": "auto",
     "lldb.showDisassembly": "auto",
