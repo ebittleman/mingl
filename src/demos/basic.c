@@ -1,6 +1,8 @@
 
 #ifdef DEMOS_BASIC
 
+// following: https://learnopengl.com/Introduction
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -45,6 +47,10 @@ typedef void(update_func_t)(void);
 GLFWwindow *init_graphics(init_func_t *init_func);
 void start_drawing(GLFWwindow *window, update_func_t *update_func);
 
+// Notes: need to look at packing as much into a single vao as possible
+//        the idea is that a single scene with many objects can be drawn
+//        with many draw calls using an offset to the targeted object
+// https://learnopengl.com/Advanced-OpenGL/Advanced-Data
 static GLuint vao;
 static GLuint program;
 static GLuint texture;
