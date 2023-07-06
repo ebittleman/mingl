@@ -3,10 +3,14 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include <glad/gl.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 const char *vertex_shader_text =
     "#version 330 core\n"
@@ -14,20 +18,27 @@ const char *vertex_shader_text =
     "layout (location = 1) in vec4 aColor;\n"
     "layout (location = 2) in vec2 aUV;\n"
     "out vec4 VertColor;\n"
+    "out vec2 TextCoord;\n"
     "void main()\n"
     "{\n"
     "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
     "   VertColor = aColor;\n"
+    "   TextCoord = aUV;\n"
     "}\0";
 const char *fragment_shader_text =
     "#version 330 core\n"
-    "in vec4 VertColor;\n"
     "out vec4 FragColor;\n"
+    "in vec4 VertColor;\n"
+    "in vec2 TextCoord;\n"
+    "uniform sampler2D ourTexture;\n"
     "void main()\n"
     "{\n"
-    "   FragColor = VertColor;\n"
+    // "   FragColor = VertColor;\n"
+    "   FragColor = texture(ourTexture, TextCoord);\n"
     "}\n\0";
 
+// const char *texture_file = "assets/textures/container2.png";
+const char *texture_file = "assets/textures/skybox/right.jpg";
 typedef void(init_func_t)(void);
 typedef void(update_func_t)(void);
 
@@ -36,6 +47,7 @@ void start_drawing(GLFWwindow *window, update_func_t *update_func);
 
 static GLuint vao;
 static GLuint program;
+static GLuint texture;
 
 typedef struct
 {
@@ -47,10 +59,10 @@ typedef struct
 void init(void)
 {
     vertex vertices[] = {
-        {0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f},   // top right
-        {0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f},  // bottom right
+        {0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f},   // top right
+        {0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f},  // bottom right
         {-0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f}, // bottom left
-        {-0.5f, 0.5f, 0.0f, 1.0f, 0.5f, 1.0f, 1.0f, 0.0f, 0.0f}   // top left
+        {-0.5f, 0.5f, 0.0f, 1.0f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f}   // top left
     };
 
     GLuint indices[] = {
@@ -118,10 +130,38 @@ void init(void)
     glBindVertexArray(0);                     // unbind the VAO
     glBindBuffer(GL_ARRAY_BUFFER, 0);         // unbind the VBO
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); // unbind the EBO
+
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    int width, height, nrChannels;
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char *data = stbi_load(texture_file, &width, &height, &nrChannels, 0);
+    if (data)
+    {
+        printf("loaded texture: %s\n", texture_file);
+        printf("nrChannels: %d\n", nrChannels);
+        printf("width: %d,height: %d\n", width, height);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    }
+    else
+    {
+        exit(EXIT_SUCCESS);
+    }
+    stbi_image_free(data);
+    // glUseProgram(program);
+    glUniform1i(glGetUniformLocation(program, "ourTexture"), 0);
 }
 
 void update(void)
 {
+    // set the textures
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
     // set the shaders
     glUseProgram(program);
     // bind the vertex array object

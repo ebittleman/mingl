@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <strings.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include "data_structures.h"
 
 #include "tests.h"

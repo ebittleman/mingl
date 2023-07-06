@@ -1,6 +1,7 @@
+#include <assert.h>
 #include "opengl_util.h"
 
-#define STB_IMAGE_IMPLEMENTATION
+// #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 // set a max limit on shader length to avoid dynamic memory allocation
