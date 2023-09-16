@@ -6,6 +6,9 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include "obj3d.h"
 #include "scenes/scenes.h"
 #include "data_structures.h"

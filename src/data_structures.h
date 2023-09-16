@@ -3,11 +3,13 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 
 #define DEFAULT_SLICE_CAP 10
 typedef struct _slice
 {
     size_t len;
+
     size_t cap;
     size_t size;
 

@@ -138,16 +138,16 @@ void sscanf_face(char *line, size_t len, size_t vertex_count, face_elements data
         memcpy(string_buffer, cursor, end - cursor);
         string_buffer[end - cursor] = '\0';
 
-        if (sscanf(string_buffer, "%llu/%llu/%llu",
+        if (sscanf(string_buffer, "%zu/%zu/%zu",
                    &data[i].position_idx, &data[i].texture_idx, &data[i].normal_idx) != 3)
         {
             data[i].normal_idx = 0;
-            if (sscanf(string_buffer, "%llu/%llu/", &data[i].position_idx, &data[i].texture_idx) != 2)
+            if (sscanf(string_buffer, "%zu/%zu/", &data[i].position_idx, &data[i].texture_idx) != 2)
             {
                 data[i].texture_idx = 0;
-                if (sscanf(string_buffer, "%llu//%llu", &data[i].position_idx, &data[i].normal_idx) != 2)
+                if (sscanf(string_buffer, "%zu//%zu", &data[i].position_idx, &data[i].normal_idx) != 2)
                 {
-                    sscanf(string_buffer, "%llu//", &data[i].position_idx);
+                    sscanf(string_buffer, "%zu//", &data[i].position_idx);
                 }
             }
         }
