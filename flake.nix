@@ -26,7 +26,7 @@
           xorg.libXi
         ];
         buildPhase = "make -j4";
-        installPhase = "echo install";
+        installPhase = "mkdir -p $out/bin; install -t $out/bin src/mingl";
       };
 
   };
