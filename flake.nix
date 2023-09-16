@@ -15,6 +15,7 @@
         nativeBuildInputs = [
           clang
           cmake
+          pkg-config
         ];
         buildInputs = [
           libGL
@@ -23,9 +24,8 @@
           xorg.libXcursor
           xorg.libXinerama
           xorg.libXi
-          pkg-config
         ];
-        buildPhase = "cmake --build build";
+        buildPhase = "make -j4";
         installPhase = "echo install";
       };
 
