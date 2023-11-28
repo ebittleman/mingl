@@ -5,10 +5,10 @@
 
 int main(void)
 {
-     GLFWwindow *window = init_opengl(&init);
-     start(window, update, shaders, mingl_first_scenes);
-     exit(EXIT_SUCCESS);
- }
+  GLFWwindow *window = init_opengl(&init);
+  start(window, update, shaders, mingl_first_scenes);
+  exit(EXIT_SUCCESS);
+}
 
 // int main(void)
 // {
